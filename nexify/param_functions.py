@@ -228,7 +228,7 @@ def Path(  # noqa: N802
             """
             Mark this parameter field as deprecated.
 
-            It will affect the generated OpenAPI (e.g. visible at `/docs`).
+            It will affect the generated OpenAPI.
             """
         ),
     ] = None,
@@ -239,7 +239,7 @@ def Path(  # noqa: N802
             To include (or not) this parameter field in the generated OpenAPI.
             You probably don't need it, but it's available.
 
-            This affects the generated OpenAPI (e.g. visible at `/docs`).
+            This affects the generated OpenAPI.
             """
         ),
     ] = True,
@@ -496,7 +496,7 @@ def Query(  # noqa: N802
             """
             Mark this parameter field as deprecated.
 
-            It will affect the generated OpenAPI (e.g. visible at `/docs`).
+            It will affect the generated OpenAPI.
             """
         ),
     ] = None,
@@ -507,7 +507,7 @@ def Query(  # noqa: N802
             To include (or not) this parameter field in the generated OpenAPI.
             You probably don't need it, but it's available.
 
-            This affects the generated OpenAPI (e.g. visible at `/docs`).
+            This affects the generated OpenAPI.
             """
         ),
     ] = True,
@@ -781,7 +781,7 @@ def Body(  # noqa: N802
             """
             Mark this parameter field as deprecated.
 
-            It will affect the generated OpenAPI (e.g. visible at `/docs`).
+            It will affect the generated OpenAPI.
             """
         ),
     ] = None,
@@ -792,7 +792,7 @@ def Body(  # noqa: N802
             To include (or not) this parameter field in the generated OpenAPI.
             You probably don't need it, but it's available.
 
-            This affects the generated OpenAPI (e.g. visible at `/docs`).
+            This affects the generated OpenAPI.
             """
         ),
     ] = True,
@@ -835,3 +835,11 @@ def Body(  # noqa: N802
         include_in_schema=include_in_schema,
         json_schema_extra=json_schema_extra,
     )
+
+
+def Event():
+    return params.Event()
+
+
+def Context():
+    return params.Context()
