@@ -32,10 +32,12 @@ def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[st
         base_type, param_type, *_ = get_args(annotation)
 
         if isinstance(param_type, Event):
+            assert issubclass(base_type, dict), "Event parameter must be a dictionary"
             parsed_data[name] = event
             continue
 
         if isinstance(param_type, Context):
+            assert issubclass(base_type, dict), "Context parameter must be a dictionary"
             parsed_data[name] = context
             continue
 
