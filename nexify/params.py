@@ -126,6 +126,7 @@ class Path(Param):
         json_schema_extra: dict[str, Any] | None = None,
     ):
         assert default is ..., "Path parameters cannot have a default value"
+        assert default_factory is Undefined, "Path parameters cannot have a default factory"
         self.in_ = self.in_
         super().__init__(
             default=default,
@@ -297,7 +298,7 @@ class Body(FieldInfo):
         return f"{self.__class__.__name__}({self.default})"
 
 
-class Event: ...
+class Event(FieldInfo): ...
 
 
-class Context: ...
+class Context(FieldInfo): ...

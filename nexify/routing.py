@@ -2,7 +2,7 @@ from collections.abc import Callable, Sequence
 from functools import wraps
 from typing import Annotated, Any
 
-from nexify.parser import parse_data
+from nexify.parser import handler_validation, parse_data
 from nexify.types import Handler
 from typing_extensions import Doc
 
@@ -279,6 +279,7 @@ class APIRouter:
         ] = None,
     ) -> Callable[[Callable], Handler]:
         def decorator(func: Callable) -> Handler:
+            handler_validation(func, path)
             self.add_route(
                 path,
                 func,
