@@ -6,6 +6,9 @@ from typing import Any, get_args
 from nexify.params import Body, Context, Event, Path, Query
 from nexify.utils import is_annotated
 from pydantic import BaseModel, ValidationError
+from pydantic_core import PydanticUndefined
+
+Undefined: Any = PydanticUndefined
 
 
 def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[str, Any]:  # noqa: ARG001
@@ -60,25 +63,29 @@ def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[st
             )
 
         if isinstance(param_type, Path):
-            source = event.get("pathParameters", "{}")
+            source = event.get("pathParameters", {})
         elif isinstance(param_type, Query):
-            source = event.get("queryStringParameters", "{}")
+            source = event.get("queryStringParameters", {})
         elif isinstance(param_type, Body):
-            source = event.get("body", "{}")
+            source = event.get("body", {})
 
-        assert source.get(name, None) is not None, f"Missing parameter {name} in {path}"
+        default_value = (
+            param.default if param.default != param.empty else param_type.get_default(call_default_factory=True)
+        )
+
+        assert source.get(name, None) or default_value is not None, f"Missing parameter {name} in {path}"
 
         try:
             if issubclass(base_type, str):
-                parsed_data[name] = source.get(name)
+                parsed_data[name] = source.get(name) or default_value
             elif issubclass(base_type, int):
-                parsed_data[name] = int(source.get(name))
+                parsed_data[name] = int(source.get(name)) or int(default_value)
             elif issubclass(base_type, float):
-                parsed_data[name] = float(source.get(name))
+                parsed_data[name] = float(source.get(name)) or float(default_value)
             elif issubclass(base_type, bool):
                 parsed_data[name] = source.get(name).lower() == "true" or source.get(name) == "1"
             elif issubclass(base_type, dict):
-                data = source.get(name)
+                data = source.get(name) or default_value
                 assert isinstance(data, dict), f"Parameter {name} must be a dictionary"
                 parsed_data[name] = data
         except TypeError:
@@ -91,5 +98,7 @@ def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[st
                 parsed_data[name] = base_type.model_validate_json(source)
         except ValidationError as e:
             raise ValueError(f"Failed to parse parameter {name} in {path}") from e
+
+    parsed_data = {k: v for k, v in parsed_data.items() if v is not Undefined}
 
     return parsed_data
