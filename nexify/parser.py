@@ -44,17 +44,20 @@ def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[st
             "Parameters must be annotated with str, int, float, bool, dict, or pydantic BaseModel"
         )
 
-        assert isinstance(param_type, Path) and issubclass(base_type, str | int | float | bool), (
-            "Path parameters must be annotated with str, int, float, or bool"
-        )
+        if isinstance(param_type, Path):
+            assert issubclass(base_type, str | int | float | bool), (
+                "Path parameters must be annotated with str, int, float, or bool"
+            )
 
-        assert isinstance(param_type, Query) and issubclass(base_type, str | int | float | bool), (
-            "Query parameters must be annotated with str, int, float, or bool"
-        )
+        if isinstance(param_type, Query):
+            assert issubclass(base_type, str | int | float | bool), (
+                "Query parameters must be annotated with str, int, float, or bool"
+            )
 
-        assert isinstance(param_type, Body) and issubclass(base_type, dict | BaseModel), (
-            "Body parameters must be annotated with a dict or pydantic BaseModel"
-        )
+        if isinstance(param_type, Body):
+            assert issubclass(base_type, dict | BaseModel), (
+                "Body parameters must be annotated with a dict or pydantic BaseModel"
+            )
 
         if isinstance(param_type, Path):
             source = event.get("pathParameters", "{}")
