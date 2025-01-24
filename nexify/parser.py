@@ -14,8 +14,6 @@ def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[st
     """
 
     signature = inspect.signature(func)
-    assert len(signature.parameters) >= 2, "The handler must accept at least two parameters for event and context"
-
     parsed_data: dict[str, Any] = {}
 
     for name, param in signature.parameters.items():
@@ -30,7 +28,12 @@ def parse_data(func: Callable, path: str, event: dict, context: dict) -> dict[st
 
         base_type, param_type, *_ = get_args(annotation)
 
-        if isinstance(param_type, Event | Context):
+        if isinstance(param_type, Event):
+            parsed_data[name] = event
+            continue
+
+        if isinstance(param_type, Context):
+            parsed_data[name] = context
             continue
 
         assert isinstance(param_type, Path | Query | Body), (
