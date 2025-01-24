@@ -37,7 +37,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
-    "pydantic>=1.7.4,!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0",
+    "pydantic>=2.0.0,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0",
     "typing-extensions>=4.8.0",
 ]
 
@@ -50,8 +50,11 @@ Changelog = "https://nexify.junah201.dev/release-notes"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
+    "mypy",
     "ruff>=0.9.0",
+]
+test = [
+    "pytest"
 ]
 
 [tool.pdm]
@@ -81,3 +84,4 @@ known-third-party = ["nexify", "pydantic"]
 
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
