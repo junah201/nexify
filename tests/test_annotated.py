@@ -1,8 +1,7 @@
 from typing import Annotated
 
 import pytest
-from nexify import Event, Nexify, Path, Query
-from nexify.params import Context
+from nexify import Context, Event, Nexify, Path, Query
 
 
 @pytest.mark.parametrize(

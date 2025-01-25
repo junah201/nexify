@@ -163,9 +163,9 @@ def jsonable_encoder(
             for encoder_type, encoder_instance in custom_encoder.items():
                 if isinstance(obj, encoder_type):
                     return encoder_instance(obj)
-    if include is not None and not isinstance(include, (set, dict)):
+    if include is not None and not isinstance(include, set | dict):
         include = set(include)
-    if exclude is not None and not isinstance(exclude, (set, dict)):
+    if exclude is not None and not isinstance(exclude, set | dict):
         exclude = set(exclude)
     if isinstance(obj, BaseModel):
         # TODO: remove when deprecating Pydantic v1
@@ -191,7 +191,7 @@ def jsonable_encoder(
             sqlalchemy_safe=sqlalchemy_safe,
         )
     if dataclasses.is_dataclass(obj):
-        obj_dict = dataclasses.asdict(obj)
+        obj_dict = dataclasses.asdict(obj)  # type: ignore
         return jsonable_encoder(
             obj_dict,
             include=include,
@@ -207,7 +207,7 @@ def jsonable_encoder(
         return obj.value
     if isinstance(obj, PurePath):
         return str(obj)
-    if isinstance(obj, (str, int, float, type(None))):
+    if isinstance(obj, str | int | float | type(None)):
         return obj
     if isinstance(obj, UndefinedType):
         return None
@@ -242,7 +242,7 @@ def jsonable_encoder(
                 )
                 encoded_dict[encoded_key] = encoded_value
         return encoded_dict
-    if isinstance(obj, (list, set, frozenset, GeneratorType, tuple, deque)):
+    if isinstance(obj, list | set | frozenset | GeneratorType | tuple | deque):
         encoded_list = []
         for item in obj:
             encoded_list.append(

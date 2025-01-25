@@ -26,7 +26,6 @@ def get_openapi(
     terms_of_service: str | None = None,
     contact: dict[str, str | Any] | None = None,
     license_info: dict[str, str | Any] | None = None,
-    separate_input_output_schemas: bool = True,
 ) -> dict[str, Any]:
     info: dict[str, Any] = {
         "title": title,
@@ -64,7 +63,6 @@ def get_openapi(
         result = get_openapi_path(
             route=route,
             operation_ids=operation_ids,
-            schema_generator=schema_generator,
             field_mapping=field_mapping,
         )
 
@@ -94,9 +92,7 @@ def get_openapi_path(
     *,
     route: Route,
     operation_ids: set[str],
-    schema_generator: GenerateJsonSchema,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
-    separate_input_output_schemas: bool = True,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     path = {}
     security_schemes: dict[str, Any] = {}
@@ -104,13 +100,11 @@ def get_openapi_path(
     assert route.methods is not None, "Methods must be a list"
 
     for method in route.methods:
-        operation = get_openapi_operation_metadata(route=route, method=method, operation_ids=operation_ids)
+        operation = get_openapi_operation_metadata(route=route, operation_ids=operation_ids)
         parameters: list[dict[str, Any]] = []
         operation_parameters = _get_openapi_operation_parameters(
             route=route,
-            schema_generator=schema_generator,
             field_mapping=field_mapping,
-            separate_input_output_schemas=separate_input_output_schemas,
         )
         parameters.extend(operation_parameters)
         if parameters:
@@ -123,7 +117,6 @@ def get_openapi_path(
         if method in METHODS_WITH_BODY:
             request_body_oai = get_openapi_operation_request_body(
                 body_field=route.body_field,
-                schema_generator=schema_generator,
                 field_mapping=field_mapping,
             )
             if request_body_oai:
@@ -139,9 +132,7 @@ def get_openapi_path(
 def _get_openapi_operation_parameters(
     *,
     route: Route,
-    schema_generator: GenerateJsonSchema,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
-    separate_input_output_schemas: bool = True,
 ) -> list[dict[str, Any]]:
     parameters = []
     path_fields = route.path_fields
@@ -158,7 +149,6 @@ def _get_openapi_operation_parameters(
             param_schema = get_schema_from_model_field(
                 field=param,
                 field_mapping=field_mapping,
-                separate_input_output_schemas=separate_input_output_schemas,
             )
             parameter = {
                 "name": param.alias,
@@ -181,7 +171,6 @@ def get_schema_from_model_field(
     *,
     field: ModelField,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
-    separate_input_output_schemas: bool = True,
 ) -> dict[str, Any]:
     # override_mode: Union[Literal["validation"], None] = None if separate_input_output_schemas else "validation"
     json_schema = field_mapping[(field, field.mode)]
@@ -191,7 +180,6 @@ def get_schema_from_model_field(
 def get_openapi_operation_request_body(
     *,
     body_field: ModelField | None,
-    schema_generator: GenerateJsonSchema,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
 ) -> dict[str, Any] | None:
     if not body_field:
@@ -214,17 +202,17 @@ def get_openapi_operation_request_body(
     return request_body_oai
 
 
-def generate_operation_summary(*, route: Route, method: str) -> str:
+def generate_operation_summary(*, route: Route) -> str:
     if route.summary:
         return route.summary
     return route.name.replace("_", " ").title()
 
 
-def get_openapi_operation_metadata(*, route: Route, method: str, operation_ids: set[str]) -> dict[str, Any]:
+def get_openapi_operation_metadata(*, route: Route, operation_ids: set[str]) -> dict[str, Any]:
     operation: dict[str, Any] = {}
     if route.tags:
         operation["tags"] = route.tags
-    operation["summary"] = generate_operation_summary(route=route, method=method)
+    operation["summary"] = generate_operation_summary(route=route)
     if route.description:
         operation["description"] = route.description
     operation_id = route.operation_id or route.unique_id
@@ -255,7 +243,6 @@ def get_definitions(
     *,
     fields: list[ModelField],
     schema_generator: GenerateJsonSchema,
-    separate_input_output_schemas: bool = True,
 ) -> tuple[
     dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
     dict[str, dict[str, Any]],

@@ -1,17 +1,15 @@
 import json
 import re
 from collections.abc import Callable, Sequence
-from functools import wraps
 from re import Pattern
 from typing import Annotated, Any
-
-from pydantic import ValidationError
 
 from nexify.convertors import CONVERTOR_TYPES, Convertor
 from nexify.openapi.models import ModelField
 from nexify.params import Body, Context, Event, FieldType, Path, Query
 from nexify.parser import handler_validation, params_fields, parse_data
 from nexify.types import Handler
+from pydantic import ValidationError
 from typing_extensions import Doc
 
 
@@ -615,7 +613,7 @@ def generate_unique_id(route: Route) -> str:
     return operation_id
 
 
-def generate_operation_summary(*, route: Route, method: str) -> str:
+def generate_operation_summary(*, route: Route) -> str:
     if route.summary:
         return route.summary
     return route.name.replace("_", " ").title()
