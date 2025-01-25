@@ -67,9 +67,6 @@ def get_openapi(
             field_mapping=field_mapping,
         )
 
-        if not result:
-            continue
-
         path, security_schemes, path_definitions = result
         if path:
             paths.setdefault(route.path, {}).update(path)
@@ -98,7 +95,6 @@ def get_openapi_path(
     path = {}
     security_schemes: dict[str, Any] = {}
     definitions: dict[str, Any] = {}
-    assert route.methods is not None, "Methods must be a list"
 
     for method in route.methods:
         operation = get_openapi_operation_metadata(route=route, operation_ids=operation_ids)
@@ -229,16 +225,6 @@ def get_openapi_operation_metadata(*, route: Route, operation_ids: set[str]) -> 
     if route.deprecated:
         operation["deprecated"] = route.deprecated
     return operation
-
-
-def get_fields_from_routes(routes: list[Route]) -> list[ModelField]:
-    model_fields: list[ModelField] = []
-
-    for route in routes:
-        fields = route.fields
-        model_fields.extend(fields)
-
-    return model_fields
 
 
 def get_definitions(
