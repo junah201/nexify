@@ -81,7 +81,3 @@ CONVERTOR_TYPES: dict[str, Convertor[Any]] = {
     "float": FloatConvertor(),
     "uuid": UUIDConvertor(),
 }
-
-
-def register_url_convertor(key: str, convertor: Convertor[Any]) -> None:
-    CONVERTOR_TYPES[key] = convertor

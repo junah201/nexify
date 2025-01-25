@@ -1,10 +1,11 @@
 import warnings
 from collections.abc import Sequence
+from itertools import chain
 from typing import Any, Literal, cast
 
 from nexify.encoders import jsonable_encoder
+from nexify.models import ModelField
 from nexify.openapi.constants import METHODS_WITH_BODY, REF_TEMPLATE
-from nexify.openapi.models import ModelField
 from nexify.params import Body, ParamTypes
 from nexify.routing import Route
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
@@ -53,7 +54,7 @@ def get_openapi(
     components: dict[str, dict[str, Any]] = {}
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
-    all_fields = get_fields_from_routes(list(routes or []))
+    all_fields = list(chain.from_iterable(route.fields for route in list(routes or [])))
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
         fields=all_fields,
@@ -116,7 +117,7 @@ def get_openapi_path(
             operation["parameters"] = list(all_parameters.values())
         if method in METHODS_WITH_BODY:
             request_body_oai = get_openapi_operation_request_body(
-                body_field=route.body_field,
+                body_fields=route.body_fields,
                 field_mapping=field_mapping,
             )
             if request_body_oai:
@@ -179,11 +180,12 @@ def get_schema_from_model_field(
 
 def get_openapi_operation_request_body(
     *,
-    body_field: ModelField | None,
+    body_fields: list[ModelField],
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
 ) -> dict[str, Any] | None:
-    if not body_field:
+    if not body_fields:
         return None
+    body_field = body_fields[0]
     assert isinstance(body_field, ModelField)
     body_schema = get_schema_from_model_field(
         field=body_field,
@@ -233,7 +235,7 @@ def get_fields_from_routes(routes: list[Route]) -> list[ModelField]:
     model_fields: list[ModelField] = []
 
     for route in routes:
-        fields = route.get_all_fields()
+        fields = route.fields
         model_fields.extend(fields)
 
     return model_fields

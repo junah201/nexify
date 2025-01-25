@@ -1,16 +1,22 @@
+import inspect
 import json
 import re
+import warnings
 from collections.abc import Callable, Sequence
 from re import Pattern
-from typing import Annotated, Any
+from typing import Annotated, Any, get_args
 
 from nexify.convertors import CONVERTOR_TYPES, Convertor
-from nexify.openapi.models import ModelField
-from nexify.params import Body, Context, Event, FieldType, Path, Query
-from nexify.parser import handler_validation, params_fields, parse_data
+from nexify.exceptions import RequestValidationError
+from nexify.models import ModelField
+from nexify.params import Body, Context, Event, Path, Query
 from nexify.types import Handler
-from pydantic import ValidationError
+from nexify.utils import is_annotated
+from pydantic import BaseModel, ValidationError
+from pydantic_core import PydanticUndefined
 from typing_extensions import Doc
+
+Undefined: Any = PydanticUndefined
 
 
 class Route:
@@ -28,7 +34,7 @@ class Route:
                 For example, `["GET", "POST"]`.
                 """
             ),
-        ] = "GET",
+        ],
         status_code: Annotated[
             int | None,
             Doc(
@@ -132,8 +138,6 @@ class Route:
         assert path.startswith("/"), "Path must start with '/'"
         self.path = path
         self.endpoint = endpoint
-        if methods is None:
-            methods = ["GET"]
         self.methods = {method.upper() for method in methods}
         self.status_code = status_code
         self.tags = tags or []
@@ -147,41 +151,102 @@ class Route:
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
         self.unique_id = self.operation_id or generate_unique_id(self)
 
-        _tmp_body_field = self._get_specific_fields(Body)
-        self.body_field = _tmp_body_field[0] if _tmp_body_field else None
-        self.path_fields = self._get_specific_fields(Path)
-        self.query_fields = self._get_specific_fields(Query)
-        _tmp_event_field = self._get_specific_fields(Event)
-        self.event_field = _tmp_event_field[0] if _tmp_event_field else None
-        _tmp_context_field = self._get_specific_fields(Context)
-        self.context_field = _tmp_context_field[0] if _tmp_context_field else None
-        self.fields = self.get_all_fields()
+        self.body_fields, self.path_fields, self.query_fields, self.event_fields, self.context_fields = (
+            self.get_fields()
+        )
+        self.fields = self.body_fields + self.path_fields + self.query_fields + self.event_fields + self.context_fields
 
         self.response = self.get_return_type()
 
-    def _get_specific_fields(self, field_type: FieldType) -> list[ModelField]:
-        fields = params_fields(self, field_type=field_type)
-        return fields
+    def get_fields(
+        self,
+    ) -> tuple[list[ModelField], list[ModelField], list[ModelField], list[ModelField], list[ModelField]]:
+        body_fields: list[ModelField] = []
+        path_fields: list[ModelField] = []
+        query_fields: list[ModelField] = []
+        event_fields: list[ModelField] = []
+        context_fields: list[ModelField] = []
 
-    def get_all_fields(self) -> list[ModelField]:
-        fields = []
-        if self.body_field:
-            fields.append(self.body_field)
-        fields.extend(self.path_fields)
-        fields.extend(self.query_fields)
-        if self.event_field:
-            fields.append(self.event_field)
-        if self.context_field:
-            fields.append(self.context_field)
+        signature = inspect.signature(self.endpoint)
 
-        return fields
+        for name, param in signature.parameters.items():
+            annotation = param.annotation
+
+            if not is_annotated(annotation):
+                warnings.warn(
+                    f"Parameter {name} is not annotated. Skipping parsing.",
+                    stacklevel=2,
+                )
+                continue
+
+            base_type, param_type, *_ = get_args(annotation)
+            param_default = param.default if param.default != param.empty else Undefined
+            default_value = (
+                param.default if param.default != param.empty else param_type.get_default(call_default_factory=True)
+            )
+            assert default_value is Undefined or isinstance(default_value, base_type), (
+                f"Default value {default_value} is not an instance of {base_type}"
+            )
+
+            if isinstance(param_type, Event | Context | Path):
+                assert default_value is Undefined, f"{param_type} parameter must do not have default values"
+
+            assert isinstance(param_type, Path | Query | Body | Event | Context), (
+                f"Unsupported metadata type {param_type}. Must be Path, Query, Body, Event, or Context"
+            )
+
+            assert issubclass(base_type, str | int | float | bool | dict | BaseModel), (
+                "Parameters must be annotated with str, int, float, bool, dict, or pydantic BaseModel"
+            )
+
+            if isinstance(param_type, Path):
+                assert self.path.count("{" + name + "}") == 1, f"Path parameter {name} is not present in {self.path}"
+
+            param_type.validate_annotation(base_type)
+            param_type.alias = param_type.alias or name
+            param_type.annotation = base_type
+            if param_default is not Undefined:
+                assert param_type.get_default(call_default_factory=True) == Undefined, "Default value is already set"
+                param_type.default = default_value
+
+            field = ModelField(name=name, field_info=param_type, mode="validation")
+
+            if isinstance(param_type, Body):
+                body_fields.append(field)
+            elif isinstance(param_type, Path):
+                path_fields.append(field)
+            elif isinstance(param_type, Query):
+                query_fields.append(field)
+            elif isinstance(param_type, Event):
+                event_fields.append(field)
+            elif isinstance(param_type, Context):
+                context_fields.append(field)
+
+        return body_fields, path_fields, query_fields, event_fields, context_fields
 
     def get_return_type(self) -> Any:
-        print(self.endpoint.__annotations__.get("return", None))
         return self.endpoint.__annotations__.get("return", None)
 
     def __call__(self, event, _context):
-        parsed_data = parse_data(self.endpoint, self.path, event, _context)
+        parsed_data = {}
+        errors = []
+        for field in self.fields:
+            try:
+                field.field_info.validate_annotation(field.field_info.annotation)
+                source = field.field_info.get_source(event, _context)
+                value = field.field_info.get_value_from_source(source)
+                if isinstance(field.field_info, Event | Context):
+                    # When we have an Event or Context parameter, we don't need to validate the value
+                    # Just assign it to the parsed_data
+                    parsed_data[field.name] = value
+                else:
+                    parsed_data[field.name] = field.validate(value)
+            except ValidationError as e:
+                errors.extend(e.errors())
+
+        if errors:
+            raise RequestValidationError(errors, body=event)
+
         try:
             body = self.endpoint(**parsed_data)
             res = {
@@ -356,7 +421,6 @@ class APIRouter:
         ] = None,
     ) -> Callable[[Callable], Handler]:
         def decorator(func: Callable) -> Handler:
-            handler_validation(func, path)
             route = self.create_route(
                 path,
                 func,

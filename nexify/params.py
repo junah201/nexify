@@ -1,13 +1,12 @@
+import json
 from collections.abc import Callable
 from enum import Enum
-from typing import (
-    Any,
-    TypeAlias,
-)
+from typing import Any
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
+from nexify.exceptions import RequestValidationError
 from nexify.openapi.models import Example
-from pydantic import AliasChoices, AliasPath
+from pydantic import AliasChoices, AliasPath, BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 from typing_extensions import deprecated
@@ -88,6 +87,15 @@ class Param(FieldInfo):
 
         super().__init__(**use_kwargs)
 
+    def validate_annotation(self, annotation: Any) -> None:
+        raise NotImplementedError
+
+    def get_source(self, event: dict, context: dict) -> Any:
+        raise NotImplementedError
+
+    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+        raise NotImplementedError
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.default})"
 
@@ -159,6 +167,23 @@ class Path(Param):
             json_schema_extra=json_schema_extra,
         )
 
+    def validate_annotation(self, annotation: Any) -> None:
+        assert issubclass(annotation, str | int | float | bool), (
+            "Path parameters must be annotated with str, int, float, or bool"
+        )
+
+    def get_source(self, event: dict, context: dict) -> dict:
+        return event.get("pathParameters", {})  # type: ignore
+
+    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+        default = self.get_default(call_default_factory=True)
+        default = default if default is not Undefined else default_value
+
+        value = source.get(self.alias, default)
+        if value is Undefined:
+            raise RequestValidationError([], body=source)
+        return value
+
 
 class Query(Param):
     in_ = ParamTypes.query
@@ -223,6 +248,23 @@ class Query(Param):
             include_in_schema=include_in_schema,
             json_schema_extra=json_schema_extra,
         )
+
+    def validate_annotation(self, annotation: Any) -> None:
+        assert issubclass(annotation, str | int | float | bool), (
+            "Query parameters must be annotated with str, int, float, or bool"
+        )
+
+    def get_source(self, event: dict, context: dict) -> dict:
+        return event.get("queryStringParameters", {})
+
+    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+        default = self.get_default(call_default_factory=True)
+        default = default if default is not Undefined else default_value
+
+        value = source.get(self.alias, default)
+        if value is Undefined:
+            raise RequestValidationError([], body=source)
+        return value
 
 
 class Body(FieldInfo):
@@ -295,14 +337,43 @@ class Body(FieldInfo):
 
         super().__init__(**use_kwargs)
 
+    def validate_annotation(self, annotation: Any) -> None:
+        assert issubclass(annotation, (dict | BaseModel)), "Body parameters must be annotated with dict or BaseModel"
+
+    def get_source(self, event: dict, context: dict) -> dict:
+        return json.loads(event.get("body", "{}"))
+
+    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+        default = self.get_default(call_default_factory=True)
+        default = default if default is not Undefined else default_value
+        value = source or default
+        if value is Undefined:
+            raise RequestValidationError([], body=source)
+        return value
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.default})"
 
 
-class Event(FieldInfo): ...
+class Event(FieldInfo):
+    def validate_annotation(self, annotation: Any) -> None:
+        assert issubclass(annotation, dict), "Event parameter must be a dictionary"
+
+    def get_source(self, event: dict, context: dict) -> dict:
+        return event
+
+    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+        assert default_value is Undefined, "Event parameter must do not have default values"
+        return source
 
 
-class Context(FieldInfo): ...
+class Context(FieldInfo):
+    def validate_annotation(self, annotation: Any) -> None:
+        assert issubclass(annotation, dict), "Context parameter must be a dictionary"
 
+    def get_source(self, event: dict, context: dict) -> dict:
+        return context
 
-FieldType: TypeAlias = type[Body] | type[Query] | type[Path] | type[Event] | type[Context]
+    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+        assert default_value is Undefined, "Context parameter must do not have default values"
+        return source
