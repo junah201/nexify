@@ -2,7 +2,6 @@ import json
 from typing import Annotated
 
 from nexify import Nexify, Path, Query
-from pydantic import BaseModel
 
 
 def test_basic_openapi():
@@ -44,7 +43,7 @@ def test_openapi_with_tags():
         ],
     ): ...
 
-    expected = {
+    assert app.openapi() == {
         "openapi": "3.1.0",
         "info": {"title": "Nexify", "version": "0.1.0", "description": "A simple API"},
         "servers": [],
@@ -80,5 +79,3 @@ def test_openapi_with_tags():
             },
         },
     }
-
-    assert json.dumps(app.openapi(), sort_keys=True) == json.dumps(expected, sort_keys=True)

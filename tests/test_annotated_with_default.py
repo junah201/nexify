@@ -3,6 +3,7 @@ from typing import Annotated
 
 import pytest
 from nexify import Body, Context, Event, Nexify, Path, Query
+from nexify.exceptions import RequestValidationError
 from pydantic import BaseModel
 
 
@@ -40,7 +41,7 @@ def test_query_with_no_default():
     @app.get("/query_with_no_default")
     def query_with_no_default(foo: Annotated[str, Query()]): ...
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(RequestValidationError):
         query_with_no_default({}, {})
 
 
@@ -119,10 +120,10 @@ def test_body_with_no_default():
     def body_with_no_default_pydantic(foo: Annotated[Foo, Body()]):
         assert foo == Foo(foo="bar")
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(RequestValidationError):
         body_with_no_default_dict({}, {})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestValidationError):
         body_with_no_default_pydantic({}, {})
 
     event = {
