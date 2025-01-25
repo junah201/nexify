@@ -54,7 +54,9 @@ dev = [
     "ruff>=0.9.0",
 ]
 test = [
-    "pytest"
+    "mypy",
+    "pytest",
+    "pytest-cov",
 ]
 
 [tool.pdm]
@@ -89,3 +91,4 @@ keep-runtime-typing = true
 [tool.ruff.lint.per-file-ignores]
 "nexify/__init__.py" = ["F401"]
 "tests/test_annotated_with_default.py" = ["B006"]
+"tests/test_annotated_with_invalid_default.py" = ["B008"]
