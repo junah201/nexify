@@ -6,6 +6,7 @@ from typing import (
 )
 
 from nexify import routing
+from nexify.openapi.utils import get_openapi
 from nexify.types import Handler
 from typing_extensions import Doc
 
@@ -300,6 +301,7 @@ class Nexify:
         self.version = version
         self.openapi_tags = openapi_tags
         self.openapi_version = "3.1.0"
+        self.openapi_schema: dict[str, Any] | None = None
         self.servers = servers or []
         self.terms_of_service = terms_of_service
         self.contact = contact
@@ -451,3 +453,21 @@ class Nexify:
             name=name,
             openapi_extra=openapi_extra,
         )
+
+    def openapi(self) -> dict[str, Any]:
+        if not self.openapi_schema:
+            self.openapi_schema = get_openapi(
+                title=self.title,
+                version=self.version,
+                openapi_version=self.openapi_version,
+                summary=self.summary,
+                description=self.description,
+                terms_of_service=self.terms_of_service,
+                contact=self.contact,
+                license_info=self.license_info,
+                routes=self.router.routes,
+                tags=self.openapi_tags,
+                servers=self.servers,
+            )
+
+        return self.openapi_schema

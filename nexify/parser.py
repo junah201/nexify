@@ -2,12 +2,17 @@ import inspect
 import json
 import warnings
 from collections.abc import Callable
-from typing import Any, get_args
+from typing import TYPE_CHECKING, Any, get_args
 
-from nexify.params import Body, Context, Event, Path, Query
+from nexify.openapi.models import ModelField
+from nexify.params import Body, Context, Event, FieldType, Path, Query
 from nexify.utils import is_annotated
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
+
+if TYPE_CHECKING:
+    from nexify.routing import Route
+
 
 Undefined: Any = PydanticUndefined
 
@@ -188,3 +193,32 @@ def handler_validation(func: Callable, path: str):
         assert default_value is Undefined or isinstance(default_value, base_type), (
             f"Default value {default_value} is not an instance of {base_type}"
         )
+
+
+def params_fields(route: "Route", field_type: FieldType | None = None) -> list[ModelField]:
+    """
+    Get the fields from the route
+    """
+    fields: list[ModelField] = []
+
+    signature = inspect.signature(route.endpoint)
+
+    for name, param in signature.parameters.items():
+        annotation = param.annotation
+
+        if not is_annotated(annotation):
+            continue
+
+        base_type, param_type, *_ = get_args(annotation)
+
+        if isinstance(param_type, Event | Context):
+            continue
+
+        if field_type is not None and not isinstance(param_type, field_type):
+            continue
+
+        param_type.annotation = base_type
+        field = ModelField(name=name, field_info=param_type, mode="validation")
+        fields.append(field)
+
+    return fields

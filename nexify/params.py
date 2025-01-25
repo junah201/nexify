@@ -2,6 +2,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import (
     Any,
+    TypeAlias,
 )
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
@@ -302,3 +303,6 @@ class Event(FieldInfo): ...
 
 
 class Context(FieldInfo): ...
+
+
+FieldType: TypeAlias = type[Body] | type[Query] | type[Path] | type[Event] | type[Context]
