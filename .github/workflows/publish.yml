@@ -6,6 +6,10 @@ on:
       - created
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -29,6 +33,5 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          PDM_PYPI_USERNAME: ${{ secrets.PDM_PYPI_USERNAME }}
           PDM_PYPI_PASSWORD: ${{ secrets.PDM_PYPI_PASSWORD }}
-        run: pdm publish
+        run: pdm publish --username "__token__" --password "$PDM_PYPI_PASSWORD"
