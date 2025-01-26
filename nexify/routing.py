@@ -7,16 +7,19 @@ from re import Pattern
 from typing import Annotated, Any, get_args
 
 from nexify.convertors import CONVERTOR_TYPES, Convertor
-from nexify.exceptions import RequestValidationError
-from nexify.models import ModelField
+from nexify.exceptions import RequestValidationError, ResponseValidationError
+from nexify.models import ModelField, ResponseModelField
 from nexify.params import Body, Context, Event, Path, Query
+from nexify.responses import HttpResponse, JSONResponse
 from nexify.types import Handler
 from nexify.utils import is_annotated
 from pydantic import BaseModel, ValidationError
-from pydantic_core import PydanticUndefined
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined, PydanticUndefinedType
 from typing_extensions import Doc
 
 Undefined: Any = PydanticUndefined
+UndefinedType: Any = PydanticUndefinedType
 
 
 class Route:
@@ -117,6 +120,16 @@ class Route:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -156,7 +169,8 @@ class Route:
         )
         self.fields = self.body_fields + self.path_fields + self.query_fields + self.event_fields + self.context_fields
 
-        self.response = self.endpoint.__annotations__.get("return", Undefined)
+        self.response_field = self.get_response_field()
+        self.response_class = response_class
 
     def get_fields(
         self,
@@ -224,6 +238,19 @@ class Route:
 
         return body_fields, path_fields, query_fields, event_fields, context_fields
 
+    def get_response_field(self) -> ResponseModelField | PydanticUndefinedType:
+        response_model = self.endpoint.__annotations__.get("return", Undefined)
+
+        if response_model is Undefined:
+            return Undefined
+
+        field = FieldInfo()
+        field.annotation = response_model
+        field.alias = "response"
+
+        model = ResponseModelField(name="response", field_info=field, mode="validation")
+        return model
+
     def __call__(self, event, _context):
         parsed_data = {}
         errors = []
@@ -237,7 +264,7 @@ class Route:
                     # Just assign it to the parsed_data
                     parsed_data[field.name] = value
                 else:
-                    parsed_data[field.name] = field.validate(value)
+                    parsed_data[field.name] = field.validate(value=value)
             except ValidationError as e:
                 errors.extend(e.errors())
 
@@ -245,32 +272,27 @@ class Route:
             raise RequestValidationError(errors, body=event)
 
         try:
-            body = self.endpoint(**parsed_data)
-            res = {
-                "statusCode": self.status_code or 200,
-                "body": json.dumps(body),
-            }
-        except ValidationError as e:
-            res = {
-                "statusCode": 422,
-                "body": json.dumps(
-                    {
-                        "detail": "Bad Request",
-                        "errors": e.errors(),
-                    }
-                ),
-            }
-        except Exception:
-            res = {
-                "statusCode": 500,
-                "body": json.dumps(
-                    {
-                        "detail": "Internal Server Error",
-                    }
-                ),
-            }
+            content = self.endpoint(**parsed_data)
+            if self.response_field is not Undefined:
+                content = self.response_field.validate(content)  # type: ignore
 
-        return res
+            if isinstance(content, HttpResponse):
+                response = content
+            else:
+                response = self.response_class(content=content)
+            return response.render()
+        except ValidationError as e:
+            raise ResponseValidationError(e.errors(), body=content)
+        # except Exception:
+        #     res = {
+        #         "statusCode": 500,
+        #         "body": json.dumps(
+        #             {
+        #                 "detail": "Internal Server Error",
+        #             }
+        #         ),
+        #     }
+        #     return res
 
 
 class APIRouter:
@@ -292,7 +314,7 @@ class APIRouter:
     ):
         self.prefix = prefix
         self.tags = tags or []
-        self.routes: list = []
+        self.routes: list[Route] = []
 
     def route(
         self,
@@ -399,6 +421,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -429,6 +461,7 @@ class APIRouter:
                 response_description=response_description,
                 deprecated=deprecated,
                 operation_id=operation_id,
+                response_class=response_class,
                 name=name,
                 openapi_extra=openapi_extra,
             )
@@ -450,6 +483,7 @@ class APIRouter:
         response_description: str = "Successful Response",
         deprecated: bool | None = None,
         operation_id: str | None = None,
+        response_class: type[HttpResponse] = JSONResponse,
         name: str | None = None,
         openapi_extra: dict[str, Any] | None = None,
     ) -> Route:
@@ -464,6 +498,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -563,6 +598,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -591,6 +636,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -690,6 +736,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -718,6 +774,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -817,6 +874,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -845,6 +912,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -944,6 +1012,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -972,6 +1050,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -1071,6 +1150,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -1099,6 +1188,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -1198,6 +1288,16 @@ class APIRouter:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -1226,6 +1326,7 @@ class APIRouter:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )

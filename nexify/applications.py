@@ -7,6 +7,7 @@ from typing import (
 
 from nexify import routing
 from nexify.openapi.utils import get_openapi
+from nexify.responses import HttpResponse, JSONResponse
 from nexify.types import Handler
 from typing_extensions import Doc
 
@@ -406,6 +407,16 @@ class Nexify:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -436,6 +447,7 @@ class Nexify:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -535,6 +547,16 @@ class Nexify:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -565,6 +587,7 @@ class Nexify:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -664,6 +687,16 @@ class Nexify:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -694,6 +727,7 @@ class Nexify:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -793,6 +827,16 @@ class Nexify:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -823,6 +867,7 @@ class Nexify:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -922,6 +967,16 @@ class Nexify:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -952,6 +1007,7 @@ class Nexify:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )
@@ -1051,6 +1107,16 @@ class Nexify:
                 """
             ),
         ] = None,
+        response_class: Annotated[
+            type[HttpResponse],
+            Doc(
+                """
+                Response class to be used for this *path operation*.
+
+                This will not be used if you return a response directly.
+                """
+            ),
+        ] = JSONResponse,
         name: Annotated[
             str | None,
             Doc(
@@ -1081,6 +1147,7 @@ class Nexify:
             response_description=response_description,
             deprecated=deprecated,
             operation_id=operation_id,
+            response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
         )

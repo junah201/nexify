@@ -1,12 +1,14 @@
+import inspect
 import warnings
 from collections.abc import Sequence
 from itertools import chain
 from typing import Any, Literal, cast
 
 from nexify.encoders import jsonable_encoder
-from nexify.models import ModelField
+from nexify.models import ModelField, ResponseModelField
 from nexify.openapi.constants import METHODS_WITH_BODY, REF_TEMPLATE
 from nexify.params import Body, ParamTypes
+from nexify.responses import JSONResponse
 from nexify.routing import Route
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import PydanticUndefined
@@ -54,7 +56,8 @@ def get_openapi(
     components: dict[str, dict[str, Any]] = {}
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
-    all_fields = list(chain.from_iterable(route.fields for route in list(routes or [])))
+    all_fields = list(chain.from_iterable(route.fields + [route.response_field] for route in list(routes or [])))  # type: ignore[arg-type]
+    all_fields: list[ModelField | ResponseModelField] = [field for field in all_fields if field is not Undefined]
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
         fields=all_fields,
@@ -119,6 +122,34 @@ def get_openapi_path(
             if request_body_oai:
                 operation["requestBody"] = request_body_oai
 
+        if route.status_code is not None:
+            status_code = str(route.status_code)
+        else:
+            response_signature = inspect.signature(route.response_class.__init__)
+            status_code_param = response_signature.parameters.get("status_code")
+            if status_code_param is not None:
+                if isinstance(status_code_param.default, int):
+                    status_code = str(status_code_param.default)
+
+        # response
+        route_response_media_type = route.response_class.media_type
+
+        operation.setdefault("responses", {}).setdefault(status_code, {})["description"] = route.response_description
+        if route_response_media_type and is_body_allowed_for_status_code(status_code):
+            response_schema = {"type": "string"}
+            if issubclass(route.response_class, JSONResponse):
+                if route.response_field is not None and route.response_field is not Undefined:
+                    assert isinstance(route.response_field, ResponseModelField)
+                    response_schema = get_schema_from_model_field(
+                        field=route.response_field,
+                        field_mapping=field_mapping,
+                    )
+                else:
+                    response_schema = {}
+                operation.setdefault("responses", {}).setdefault(status_code, {}).setdefault("content", {}).setdefault(
+                    route_response_media_type, {}
+                )["schema"] = response_schema
+
         if route.openapi_extra:
             deep_dict_update(operation, route.openapi_extra)
         path[method.lower()] = operation
@@ -166,7 +197,7 @@ def _get_openapi_operation_parameters(
 
 def get_schema_from_model_field(
     *,
-    field: ModelField,
+    field: ModelField | ResponseModelField,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
 ) -> dict[str, Any]:
     # override_mode: Union[Literal["validation"], None] = None if separate_input_output_schemas else "validation"
@@ -229,7 +260,7 @@ def get_openapi_operation_metadata(*, route: Route, operation_ids: set[str]) -> 
 
 def get_definitions(
     *,
-    fields: list[ModelField],
+    fields: list[ModelField | ResponseModelField],
     schema_generator: GenerateJsonSchema,
 ) -> tuple[
     dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
@@ -251,3 +282,20 @@ def deep_dict_update(main_dict: dict[Any, Any], update_dict: dict[Any, Any]) -> 
             main_dict[key].extend(value)
         else:
             main_dict[key] = value
+
+
+def is_body_allowed_for_status_code(status_code: int | str | None) -> bool:
+    if status_code is None:
+        return True
+    # Ref: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#patterned-fields-1
+    if status_code in {
+        "default",
+        "1XX",
+        "2XX",
+        "3XX",
+        "4XX",
+        "5XX",
+    }:
+        return True
+    current_status_code = int(status_code)
+    return not (current_status_code < 200 or current_status_code in {204, 205, 304})

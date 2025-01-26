@@ -88,13 +88,13 @@ class Param(FieldInfo):
         super().__init__(**use_kwargs)
 
     def validate_annotation(self, annotation: Any) -> None:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def get_source(self, event: dict, context: dict) -> Any:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.default})"
@@ -377,3 +377,6 @@ class Context(FieldInfo):
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
         assert default_value is Undefined, "Context parameter must do not have default values"
         return source
+
+
+class Response(FieldInfo): ...
