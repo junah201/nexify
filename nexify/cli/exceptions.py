@@ -1,0 +1,2 @@
+class NexifyCLIException(Exception):
+    pass
