@@ -1,0 +1,34 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types:
+      - created
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install PDM
+        run: pip install pdm
+
+      - name: Install dependencies
+        run: pdm install --production
+
+      - name: Build package
+        run: pdm build
+
+      - name: Publish to PyPI
+        env:
+          PDM_PYPI_USERNAME: ${{ secrets.PDM_PYPI_USERNAME }}
+          PDM_PYPI_PASSWORD: ${{ secrets.PDM_PYPI_PASSWORD }}
+        run: pdm publish
