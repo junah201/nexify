@@ -1,5 +1,4 @@
 import inspect
-import json
 import re
 import warnings
 from collections.abc import Callable, Sequence
@@ -279,7 +278,7 @@ class Route:
             if isinstance(content, HttpResponse):
                 response = content
             else:
-                response = self.response_class(content=content)
+                response = self.response_class(content=content, status_code=self.status_code)
             return response.render()
         except ValidationError as e:
             raise ResponseValidationError(e.errors(), body=content)
@@ -1398,12 +1397,6 @@ def generate_unique_id(route: Route) -> str:
     assert route.methods
     operation_id = f"{operation_id}_{list(route.methods)[0].lower()}"
     return operation_id
-
-
-def generate_operation_summary(*, route: Route) -> str:
-    if route.summary:
-        return route.summary
-    return route.name.replace("_", " ").title()
 
 
 def get_name(endpoint: Handler) -> str:

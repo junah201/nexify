@@ -74,3 +74,13 @@ def test_context(given_context):
         assert foo == given_context
 
     context({}, given_context)
+
+
+def test_no_annotated_parameter():
+    app = Nexify()
+
+    with pytest.warns(UserWarning, match=r"Parameter .* is not annotated\. Skipping parsing\."):
+
+        @app.get("/no-annotated-parameter")
+        def no_annotated_parameter(foo):
+            assert foo == "bar"

@@ -1,13 +1,11 @@
 from typing import Annotated
-from typing_extensions import TypedDict
 
 import pytest
-
 from nexify import Nexify, status
-from pydantic import BaseModel, Field
-
 from nexify.exceptions import ResponseValidationError
 from nexify.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from pydantic import BaseModel, Field
+from typing_extensions import TypedDict
 
 
 def test_no_response_field():
@@ -178,4 +176,19 @@ def test_redirect_response():
     assert response == {
         "statusCode": status.HTTP_307_TEMPORARY_REDIRECT,
         "headers": {"location": "https://google.com"},
+    }
+
+
+def test_response_with_status_code():
+    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
+
+    @app.post("/response-with-status-code", status_code=status.HTTP_201_CREATED)
+    def response_with_status_code():
+        return {"status": "created"}
+
+    response = response_with_status_code({}, {})
+    assert response == {
+        "statusCode": status.HTTP_201_CREATED,
+        "body": '{"status": "created"}',
+        "headers": {"content-type": "application/json; charset=utf-8"},
     }

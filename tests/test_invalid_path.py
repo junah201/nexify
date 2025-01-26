@@ -69,3 +69,12 @@ def test_no_path():
 
         @app.get("/no_path")
         def no_path(foo: Annotated[int, Path()]): ...
+
+
+def test_duplicated_path():
+    app = Nexify()
+
+    with pytest.raises(ValueError):
+
+        @app.get("/duplicated_path/{foo}/{foo}")
+        def duplicated_path(foo: Annotated[int, Path()]): ...

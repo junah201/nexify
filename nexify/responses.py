@@ -17,15 +17,16 @@ class HttpResponse(Response):
 
     media_type: str | None = None
     charset: str = "utf-8"
+    status_code = status.HTTP_200_OK
 
     def __init__(
         self,
         content: Any = None,
-        status_code: int = status.HTTP_200_OK,
+        status_code: int | None = status.HTTP_200_OK,
         headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
     ):
-        self.status_code = status_code
+        self.status_code = status_code or self.status_code
         self.media_type = media_type or self.media_type
         self.headers = headers or {}
         self.content = content
@@ -58,7 +59,7 @@ class JSONResponse(HttpResponse):
     def __init__(
         self,
         content: Any = None,
-        status_code: int = status.HTTP_200_OK,
+        status_code: int | None = status.HTTP_200_OK,
         headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
     ):
@@ -74,7 +75,7 @@ class PlainTextResponse(HttpResponse):
     def __init__(
         self,
         content: Any = None,
-        status_code: int = status.HTTP_200_OK,
+        status_code: int | None = status.HTTP_200_OK,
         headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
     ):
@@ -90,7 +91,7 @@ class HTMLResponse(HttpResponse):
     def __init__(
         self,
         content: Any = None,
-        status_code: int = status.HTTP_200_OK,
+        status_code: int | None = status.HTTP_200_OK,
         headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
     ):
@@ -105,7 +106,7 @@ class RedirectResponse(HttpResponse):
         self,
         url: str,
         content: Annotated[None, "This is not used. It is only for compatibility."] = None,
-        status_code: int = status.HTTP_307_TEMPORARY_REDIRECT,
+        status_code: int | None = status.HTTP_307_TEMPORARY_REDIRECT,
         headers: Mapping[str, str] | None = None,
     ):
         self.url = url

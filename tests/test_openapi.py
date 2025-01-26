@@ -2,7 +2,7 @@ import json
 from typing import Annotated
 
 import pytest
-from nexify import Body, Nexify, Path, Query
+from nexify import Body, Nexify, Path, Query, status
 from pydantic import BaseModel, Field
 
 
@@ -441,9 +441,6 @@ def test_openapi_with_response():
     @app.get("/items/{item_id}", response_description="Successful Response so that it returns an Item")
     def get_item(item_id: Annotated[str, Path()]) -> Item: ...
 
-    with open("openapi.json", "w") as f:
-        f.write(json.dumps(app.openapi(), indent=2))
-
     assert app.openapi() == {
         "openapi": "3.1.0",
         "info": {"title": "Nexify", "version": "0.1.0", "description": "A simple API"},
@@ -506,6 +503,100 @@ def test_openapi_with_response():
                         }
                     },
                 }
+            },
+        },
+    }
+
+
+def test_openapi_with_status_code():
+    app = Nexify(title="Nexify", version="0.1.0", description="A simple API")
+
+    class Item(BaseModel):
+        name: str
+        description: str
+
+    @app.post("/items", status_code=status.HTTP_204_NO_CONTENT)
+    def create_item(item: Annotated[Item, Body()]): ...
+
+    @app.options("/items", status_code=status.HTTP_204_NO_CONTENT)
+    def options_item(): ...
+
+    @app.get("/items/{item_id}", status_code=status.HTTP_200_OK)
+    def get_item(item_id: Annotated[str, Path()]) -> Item: ...
+
+    @app.head("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def head_item(item_id: Annotated[str, Path()]): ...
+
+    @app.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_item(item_id: Annotated[str, Path()]): ...
+
+    @app.put("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def put_item(item_id: Annotated[str, Path()]): ...
+
+    assert app.openapi() == {
+        "openapi": "3.1.0",
+        "info": {"title": "Nexify", "version": "0.1.0", "description": "A simple API"},
+        "servers": [],
+        "components": {
+            "schemas": {
+                "Item": {
+                    "properties": {
+                        "name": {"title": "Name", "type": "string"},
+                        "description": {"title": "Description", "type": "string"},
+                    },
+                    "required": ["name", "description"],
+                    "title": "Item",
+                    "type": "object",
+                }
+            }
+        },
+        "paths": {
+            "/items": {
+                "post": {
+                    "summary": "Create Item",
+                    "operationId": "create_item_items_post",
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Item"}}},
+                    },
+                    "responses": {"204": {"description": "Successful Response"}},
+                },
+                "head": {
+                    "summary": "Options Item",
+                    "operationId": "options_item_items_head",
+                    "responses": {"204": {"description": "Successful Response"}},
+                },
+            },
+            "/items/{item_id}": {
+                "get": {
+                    "summary": "Get Item",
+                    "operationId": "get_item_items__item_id__get",
+                    "parameters": [{"name": "item_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "responses": {
+                        "200": {
+                            "description": "Successful Response",
+                            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Item"}}},
+                        }
+                    },
+                },
+                "options": {
+                    "summary": "Head Item",
+                    "operationId": "head_item_items__item_id__options",
+                    "parameters": [{"name": "item_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "responses": {"204": {"description": "Successful Response"}},
+                },
+                "delete": {
+                    "summary": "Delete Item",
+                    "operationId": "delete_item_items__item_id__delete",
+                    "parameters": [{"name": "item_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "responses": {"204": {"description": "Successful Response"}},
+                },
+                "put": {
+                    "summary": "Put Item",
+                    "operationId": "put_item_items__item_id__put",
+                    "parameters": [{"name": "item_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "responses": {"204": {"description": "Successful Response"}},
+                },
             },
         },
     }
