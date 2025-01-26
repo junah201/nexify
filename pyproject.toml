@@ -63,6 +63,14 @@ test = [
 version = { source = "file", path = "nexify/__init__.py" }
 distribution = true
 
+[tool.pdm.build]
+source-includes = [
+    "tests",
+    "pyproject.toml",
+    "scripts",
+]
+
+
 [tool.ruff]
 line-length = 120
 
