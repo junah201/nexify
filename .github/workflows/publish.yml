@@ -32,6 +32,4 @@ jobs:
         run: pdm build
 
       - name: Publish to PyPI
-        env:
-          PDM_PYPI_PASSWORD: ${{ secrets.PDM_PYPI_PASSWORD }}
-        run: pdm publish --username "__token__" --password "$PDM_PYPI_PASSWORD"
+        run: pdm publish --username __token__ --password ${{ secrets.PDM_PYPI_PASSWORD }}
