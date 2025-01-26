@@ -56,8 +56,10 @@ def get_openapi(
     components: dict[str, dict[str, Any]] = {}
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
-    all_fields = list(chain.from_iterable(route.fields + [route.response_field] for route in list(routes or [])))  # type: ignore[arg-type]
-    all_fields: list[ModelField | ResponseModelField] = [field for field in all_fields if field is not Undefined]
+    all_fields: list[ModelField | ResponseModelField] = list(
+        chain.from_iterable(route.fields + [route.response_field] for route in list(routes or []))
+    )  # type: ignore
+    all_fields: list[ModelField | ResponseModelField] = [field for field in all_fields if field is not Undefined]  # type: ignore
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
         fields=all_fields,
@@ -80,11 +82,10 @@ def get_openapi(
 
     if definitions:
         components["schemas"] = {k: definitions[k] for k in sorted(definitions)}
+
     if components:
         output["components"] = components
     output["paths"] = paths
-    if tags:
-        output["tags"] = tags
 
     return output
 
@@ -199,7 +200,7 @@ def get_schema_from_model_field(
     *,
     field: ModelField | ResponseModelField,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
-) -> dict[str, Any]:
+) -> JsonSchemaValue:
     # override_mode: Union[Literal["validation"], None] = None if separate_input_output_schemas else "validation"
     json_schema = field_mapping[(field, field.mode)]
     return json_schema
