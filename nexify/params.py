@@ -173,7 +173,7 @@ class Path(Param):
         )
 
     def get_source(self, event: dict, context: dict) -> dict:
-        return event.get("pathParameters", {})  # type: ignore
+        return event.get("pathParameters", {}) or {}
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
         default = self.get_default(call_default_factory=True)
@@ -255,7 +255,7 @@ class Query(Param):
         )
 
     def get_source(self, event: dict, context: dict) -> dict:
-        return event.get("queryStringParameters", {})
+        return event.get("queryStringParameters", {}) or {}
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
         default = self.get_default(call_default_factory=True)
@@ -341,7 +341,7 @@ class Body(FieldInfo):
         assert issubclass(annotation, (dict | BaseModel)), "Body parameters must be annotated with dict or BaseModel"
 
     def get_source(self, event: dict, context: dict) -> dict:
-        return json.loads(event.get("body", "{}"))
+        return json.loads(event.get("body", "{}")) or {}
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
         default = self.get_default(call_default_factory=True)
