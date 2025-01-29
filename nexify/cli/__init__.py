@@ -1,7 +1,12 @@
 import logging
 from typing import Annotated
 
-import typer
+try:
+    import typer
+except ImportError:
+    message = 'To use the nexify command, please install "nexify[cli]":\n\n\tpip install "nexify[cli]"\n'
+    raise RuntimeError(message)
+
 from nexify import __version__
 from nexify.cli.application import create_app
 from nexify.cli.init import app as init_app
