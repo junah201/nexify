@@ -1,0 +1,36 @@
+{
+  "service": "${nexify:SERVICE_NAME}",
+  "provider": {
+    "name": "aws",
+    "runtime": "python3.10",
+    "region": "ap-northeast-2",
+    "profile": "default",
+    "logRetentionInDays": 14,
+    "architecture": "x86_64",
+    "memorySize": 128,
+    "timeout": 10,
+    "stage": "prod",
+    "environment": { "YOUR_CUSTOM_ENV": "${env:YOUR_CUSTOM_ENV}" },
+    "iamRoleStatements": [
+      { "Effect": "Allow", "Action": ["s3:*"], "Resource": "*" }
+    ]
+  },
+  "package": {
+    "include": ["main.py"],
+    "exclude": [".venv/**", ".git/**", ".gitignore"],
+    "pipCmdExtraArgs": [""]
+  },
+  "resources": {
+    "Resources": {
+      "APIGatewayRestAPI": {
+        "Type": "AWS::ApiGateway::RestApi",
+        "Properties": {
+          "Name": "${nexify:SERVICE_NAME}-API",
+          "EndpointConfiguration": { "Types": ["EDGE"] },
+          "Policy": "",
+          "Description": "API for ${nexify:SERVICE_NAME}"
+        }
+      }
+    }
+  }
+}
