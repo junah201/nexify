@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import importlib.resources
 import typer
 from nexify.cli.application import create_app
 from rich import print
@@ -17,7 +18,7 @@ def init() -> None:
     service_name = app_name.replace(" ", "").lower()
 
     dest = Path.cwd() / app_name
-    src = "nexify/templates/basic"
+    src = str(importlib.resources.files("nexify").joinpath("templates/basic"))
 
     if dest.exists():
         print(f"Directory {dest} already exists.")
