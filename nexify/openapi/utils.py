@@ -51,14 +51,14 @@ def get_openapi(
         "servers": servers,
         "tags": tags,
     }
-    output.update({k: v for k, v in output_extra.items() if v is not None})
+    output.update({k: v for k, v in output_extra.items() if v is not None})  # type: ignore[misc]
 
     components: dict[str, dict[str, Any]] = {}
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
     all_fields: list[ModelField | ResponseModelField] = list(
-        chain.from_iterable(route.fields + [route.response_field] for route in list(routes or []))
-    )  # type: ignore
+        chain.from_iterable(route.fields + [route.response_field] for route in list(routes or []))  # type: ignore[list-item]
+    )
     all_fields: list[ModelField | ResponseModelField] = [field for field in all_fields if field is not Undefined]  # type: ignore
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
