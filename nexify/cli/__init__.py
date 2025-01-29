@@ -3,32 +3,13 @@ from typing import Annotated
 
 import typer
 from nexify import __version__
+from nexify.cli.application import create_app
+from nexify.cli.init import app as init_app
 from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
 
-
-def setup_logging(terminal_width: int | None = None, level: int = logging.INFO) -> None:
-    logger = logging.getLogger("nexify_cli")
-    console = Console(width=terminal_width) if terminal_width else None
-    rich_handler = RichHandler(
-        show_time=False,
-        rich_tracebacks=True,
-        tracebacks_show_locals=True,
-        markup=True,
-        show_path=False,
-        console=console,
-    )
-    rich_handler.setFormatter(logging.Formatter("%(message)s"))
-    logger.addHandler(rich_handler)
-
-    logger.setLevel(level)
-    logger.propagate = False
-
-
-app = typer.Typer(rich_markup_mode="rich")
-
-logger = logging.getLogger("nexify_cli")
+app, logger = create_app()
 
 
 def version_callback(value: bool) -> None:
@@ -58,6 +39,27 @@ def callback(
     log_level = logging.DEBUG if verbose else logging.INFO
 
     setup_logging(level=log_level)
+
+
+def setup_logging(terminal_width: int | None = None, level: int = logging.INFO) -> None:
+    logger = logging.getLogger("nexify_cli")
+    console = Console(width=terminal_width) if terminal_width else None
+    rich_handler = RichHandler(
+        show_time=False,
+        rich_tracebacks=True,
+        tracebacks_show_locals=True,
+        markup=True,
+        show_path=False,
+        console=console,
+    )
+    rich_handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(rich_handler)
+
+    logger.setLevel(level)
+    logger.propagate = False
+
+
+app.add_typer(init_app)
 
 
 def main() -> None:
