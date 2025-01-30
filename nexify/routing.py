@@ -3,7 +3,7 @@ import re
 import warnings
 from collections.abc import Callable, Sequence
 from re import Pattern
-from typing import Annotated, Any, get_args
+from typing import Annotated, Any, Literal, get_args
 
 from nexify.convertors import CONVERTOR_TYPES, Convertor
 from nexify.exceptions import RequestValidationError, ResponseValidationError
@@ -28,7 +28,7 @@ class Route:
         endpoint: Callable,
         *,
         methods: Annotated[
-            Sequence[str],
+            Sequence[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]],
             Doc(
                 """
                 The HTTP methods to be used for this *path operation*.
@@ -150,7 +150,9 @@ class Route:
         assert path.startswith("/"), "Path must start with '/'"
         self.path = path
         self.endpoint = endpoint
-        self.methods = {method.upper() for method in methods}
+        self.methods: set[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = {
+            method for method in methods
+        }
         self.status_code = status_code
         self.tags = tags or []
         self.summary = summary
@@ -329,7 +331,7 @@ class APIRouter:
         ],
         *,
         methods: Annotated[
-            Sequence[str],
+            Sequence[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]],
             Doc(
                 """
                 The HTTP methods to be used for this *path operation*.
@@ -474,7 +476,7 @@ class APIRouter:
         path: str,
         endpoint: Handler,
         *,
-        methods: Sequence[str] = "GET",
+        methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = ["GET"],
         status_code: int | None = None,
         tags: list[str] | None = None,
         summary: str | None = None,

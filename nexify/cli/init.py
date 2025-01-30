@@ -1,7 +1,7 @@
+import importlib.resources
 import shutil
 from pathlib import Path
 
-import importlib.resources
 import typer
 from nexify.cli.application import create_app
 from rich import print
