@@ -1,17 +1,19 @@
-import logging
 import os
 import shutil
 import subprocess
 import zipfile
 
 from nexify.cli.deploy.types import NexifyConfig
+from rich import print
 from rich.console import Console
+from rich.progress import Progress, TaskID
 
-logger = logging.getLogger("nexify_cli")
 console = Console()
 
 
-def install_requirements(requirements_file_path: str, target_dir: str, config: NexifyConfig):
+def install_requirements(
+    requirements_file_path: str, target_dir: str, config: NexifyConfig, progress: Progress, task: TaskID
+):
     """
     Install requirements from a requirements file.
     """
@@ -20,7 +22,8 @@ def install_requirements(requirements_file_path: str, target_dir: str, config: N
     architecture = config.get("architecture", "x86_64")
     platform = "manylinux2014_aarch64" if architecture == "arm64" else "manylinux2014_x86_64"
 
-    process = subprocess.run(
+    progress.update(task, status="Setting up Python environment...")
+    process = subprocess.Popen(
         [
             "pip",
             "install",
@@ -37,22 +40,40 @@ def install_requirements(requirements_file_path: str, target_dir: str, config: N
             "--only-binary=:all:",
             "--upgrade",
         ],
-        capture_output=True,
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
-    # Rich 콘솔을 사용해 출력
-    # if process.stdout:
-    #     console.print(process.stdout.strip(), style="cyan")
-    # if process.stderr:
-    #     console.print(process.stderr.strip(), style="red")
+    msg = ""
+    for c in iter(lambda: process.stdout.read(1), b""):  # type: ignore
+        msg += c.decode("utf-8")
+        if "\n" in msg:
+            progress.update(task, status=msg)
+            msg = ""
+
+    process.wait()
+
+    if process.stderr:
+        error = process.stderr.read().decode("utf-8").strip()
+
+        if not error:
+            return
+
+        if "ERROR" in error.upper():
+            print(f"\n\n[red]Installation failed: {error}[/red]")
+            raise SystemExit(1)
+        if "WARNING" in error.upper():
+            print(f"\n\n[yellow]Installation completed with warnings:\n\n{error}[/yellow]\n\n")
+        else:
+            print(f"\n\n[red]Installation failed: {error}[/red]")
+            raise SystemExit(1)
 
 
 def package_lambda_function(source_dir: str, requirements_dir: str, output_zip_path: str):
     """
     Package a Lambda function.
     """
-    shutil.make_archive(output_zip_path.replace(".zip", ""), "zip", requirements_dir, logger=logger)
+    shutil.make_archive(output_zip_path.replace(".zip", ""), "zip", requirements_dir)
 
     with zipfile.ZipFile(output_zip_path, "a", zipfile.ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(source_dir):

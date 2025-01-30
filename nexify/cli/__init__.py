@@ -9,6 +9,7 @@ except ImportError:
 
 from nexify import __version__
 from nexify.cli.application import create_app
+from nexify.cli.deploy import app as deploy_app
 from nexify.cli.init import app as init_app
 from rich import print
 from rich.console import Console
@@ -65,6 +66,7 @@ def setup_logging(terminal_width: int | None = None, level: int = logging.INFO) 
 
 
 app.add_typer(init_app)
+app.add_typer(deploy_app)
 
 
 def main() -> None:
