@@ -1,0 +1,185 @@
+INHERIT: ../en/mkdocs.maybe-insiders.yml
+site_name: Nexify
+site_description: Nexify framework for building APIs with AWS Lambda Python runetime based on standard Python type hints.
+site_url: https://nexify.junah.dev/
+theme:
+  name: material
+  custom_dir: ../en/overrides
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/lightbulb-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to system preference
+  features:
+    - content.code.annotate
+    - content.code.copy
+    # - content.code.select
+    - content.footnote.tooltips
+    - content.tabs.link
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    # - navigation.instant.preview
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  icon:
+    repo: fontawesome/brands/github-alt
+  # logo: img/icon-white.svg
+  favicon: img/favicon.png
+  language: en
+repo_name: junah201/nexify
+repo_url: https://github.com/junah201/nexify
+plugins:
+  # Material for MkDocs
+  search:
+  # Configured in mkdocs.insiders.yml
+  # social:
+  # Other plugins
+  redirects:
+    redirect_maps:
+      deployment/deta.md: deployment/cloud.md
+      advanced/graphql.md: how-to/graphql.md
+      advanced/custom-request-and-route.md: how-to/custom-request-and-route.md
+      advanced/conditional-openapi.md: how-to/conditional-openapi.md
+      advanced/extending-openapi.md: how-to/extending-openapi.md
+      advanced/testing-database.md: how-to/testing-database.md
+  mkdocstrings:
+    handlers:
+      python:
+        options:
+          extensions:
+            - griffe_typingdoc
+          show_root_heading: true
+          show_if_no_docstring: true
+          preload_modules:
+            - httpx
+            - starlette
+          inherited_members: true
+          members_order: source
+          separate_signature: true
+          unwrap_annotated: true
+          filters:
+            - "!^_"
+          merge_init_into_class: true
+          docstring_section_style: spacy
+          signature_crossrefs: true
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+
+nav:
+  - FastAPI: index.md
+  - release-notes.md
+
+markdown_extensions:
+  # Python Markdown
+  abbr:
+  attr_list:
+  footnotes:
+  md_in_html:
+  tables:
+  toc:
+    permalink: true
+
+  # Python Markdown Extensions
+  pymdownx.betterem:
+  pymdownx.caret:
+  pymdownx.highlight:
+    line_spans: __span
+  pymdownx.inlinehilite:
+  pymdownx.keys:
+  pymdownx.mark:
+  pymdownx.superfences:
+    custom_fences:
+      - name: mermaid
+        class: mermaid
+        format: !!python/name:pymdownx.superfences.fence_code_format
+  pymdownx.tilde:
+
+  # pymdownx blocks
+  pymdownx.blocks.admonition:
+    types:
+      - note
+      - attention
+      - caution
+      - danger
+      - error
+      - tip
+      - hint
+      - warning
+      # Custom types
+      - info
+      - check
+  pymdownx.blocks.details:
+  pymdownx.blocks.tab:
+    alternate_style: True
+
+  # Other extensions
+  mdx_include:
+  markdown_include_variants:
+
+extra:
+  # analytics:
+  #   provider: google
+  #   property: G-YNEVN69SC3
+  #   feedback:
+  #     title: Was this page helpful?
+  #     ratings:
+  #       - icon: material/emoticon-happy-outline
+  #         name: This page was helpful
+  #         data: 1
+  #         note: >-
+  #           Thanks for your feedback!
+  #       - icon: material/emoticon-sad-outline
+  #         name: This page could be improved
+  #         data: 0
+  #         note: >-
+  #           Thanks for your feedback!
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/junah201/nexify
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/junah
+    - icon: fontawesome/brands/medium
+      link: https://medium.com/@junah201
+
+  alternate:
+    - link: /
+      name: en - English
+    - link: /ko/
+      name: ko - 한국어
+
+extra_css:
+  - css/termynal.css
+  - css/custom.css
+
+extra_javascript:
+  - js/termynal.js
+  - js/custom.js
+
+hooks:
+  - ../../scripts/mkdocs_hooks.py
