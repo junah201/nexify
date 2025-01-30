@@ -150,9 +150,7 @@ class Route:
         assert path.startswith("/"), "Path must start with '/'"
         self.path = path
         self.endpoint = endpoint
-        self.methods: set[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = {
-            method for method in methods
-        }
+        self.methods: set[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = set(methods)
         self.status_code = status_code
         self.tags = tags or []
         self.summary = summary
