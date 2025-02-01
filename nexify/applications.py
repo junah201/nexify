@@ -117,7 +117,7 @@ class Nexify:
                         "description": "Manage items. So _fancy_ they have their own docs.",
                         "externalDocs": {
                             "description": "Items external docs",
-                            "url": "https://fastapi.tiangolo.com/",
+                            "url": "https://nexify.junah.dev/",
                         },
                     },
                 ]

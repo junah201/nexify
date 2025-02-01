@@ -9,6 +9,10 @@ Undefined: Any = PydanticUndefined
 
 
 class Example(TypedDict, total=False):
+    """
+    OpenAPI Example
+    """
+
     summary: str | None
     description: str | None
     value: Any | None

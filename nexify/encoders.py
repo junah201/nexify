@@ -146,14 +146,11 @@ def jsonable_encoder(
     """
     Convert any object to something that can be encoded in JSON.
 
-    This is used internally by FastAPI to make sure anything you return can be
+    This is used internally by Nexify to make sure anything you return can be
     encoded as JSON before it is sent to the client.
 
     You can also use it yourself, for example to convert objects before saving them
     in a database that supports only JSON.
-
-    Read more about it in the
-    [FastAPI docs for JSON Compatible Encoder](https://fastapi.tiangolo.com/tutorial/encoder/).
     """
     custom_encoder = custom_encoder or {}
     if custom_encoder:
