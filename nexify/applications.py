@@ -220,7 +220,7 @@ class Nexify:
                     license name used for the API.
                 * `identifier`: (`str`) An [SPDX](https://spdx.dev/) license expression
                     for the API. The `identifier` field is mutually exclusive of the `url`
-                    field. Available since OpenAPI 3.1.0, FastAPI 0.99.0.
+                    field. Available since OpenAPI 3.1.0.
                 * `url`: (`str`) A URL to the license used for the API. This MUST be
                     the format of a URL.
 
@@ -286,15 +286,6 @@ class Nexify:
                 """
             ),
         ] = "rest",
-        **extra: Annotated[
-            Any,
-            Doc(
-                """
-                Extra keyword arguments to be stored in the app, not used by FastAPI
-                anywhere.
-                """
-            ),
-        ],
     ):
         self.debug = debug
         self.title = title
@@ -310,7 +301,6 @@ class Nexify:
         self.license_info = license_info
         self.root_path = root_path
         self.deprecated = deprecated
-        self.extra = extra
         self.router = routing.APIRouter()
 
     def get(

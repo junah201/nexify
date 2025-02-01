@@ -72,7 +72,7 @@ def get_swagger_ui_html(
         str | None,
         Doc(
             """
-            The OAuth2 redirect URL, it is normally automatically handled by FastAPI.
+            The OAuth2 redirect URL, it is normally automatically handled by Nexify.
             """
         ),
     ] = None,
@@ -89,8 +89,6 @@ def get_swagger_ui_html(
         Doc(
             """
             Configuration parameters for Swagger UI.
-
-            It defaults to [swagger_ui_default_parameters][fastapi.openapi.docs.swagger_ui_default_parameters].
             """
         ),
     ] = None,
@@ -101,10 +99,6 @@ def get_swagger_ui_html(
 
     You would only call this function yourself if you needed to override some parts,
     for example the URLs to use to load Swagger UI's JavaScript and CSS.
-
-    Read more about it in the
-    [FastAPI docs for Configure Swagger UI](https://fastapi.tiangolo.com/how-to/configure-swagger-ui/)
-    and the [FastAPI docs for Custom Docs UI Static Assets (Self-Hosting)](https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/).
     """
     current_swagger_ui_parameters = swagger_ui_default_parameters.copy()
     if swagger_ui_parameters:
@@ -164,7 +158,7 @@ def get_redoc_html(
             """
             The OpenAPI URL that Swagger UI should load and use.
 
-            This is normally done automatically by FastAPI using the default URL
+            This is normally done automatically by Nexify using the default URL
             `/openapi.json`.
             """
         ),
@@ -210,9 +204,6 @@ def get_redoc_html(
 
     You would only call this function yourself if you needed to override some parts,
     for example the URLs to use to load ReDoc's JavaScript and CSS.
-
-    Read more about it in the
-    [FastAPI docs for Custom Docs UI Static Assets (Self-Hosting)](https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/).
     """
     html = f"""
     <!DOCTYPE html>
