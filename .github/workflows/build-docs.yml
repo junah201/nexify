@@ -2,7 +2,7 @@ name: Build Docs
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     types:
       - opened
@@ -13,6 +13,7 @@ jobs:
 
     permissions:
       pull-requests: read
+      contents: read
 
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
@@ -34,29 +35,9 @@ jobs:
               - .github/workflows/build-docs.yml
               - .github/workflows/deploy-docs.yml
 
-  langs:
-    needs:
-      - changes
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install PDM
-        run: pip install pdm
-
-      - name: Install dependencies
-        run: pdm install --with docs --with dev
-
   build-docs:
     needs:
       - changes
-      - langs
     if: ${{ needs.changes.outputs.docs == 'true' }}
     runs-on: ubuntu-latest
     strategy:
@@ -83,7 +64,7 @@ jobs:
         run: pdm install --with docs --with dev
 
       - name: Build Docs
-        run: python ./scripts/docs_build_lang.py ${{ matrix.lang }}
+        run: pdm run python ./scripts/docs_build_lang.py ${{ matrix.lang }}
 
       - uses: actions/upload-artifact@v4
         with:

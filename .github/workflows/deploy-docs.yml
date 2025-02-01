@@ -7,6 +7,8 @@ on:
       - completed
 
 permissions:
+  contents: read
+  actions: read
   deployments: write
   issues: write
   pull-requests: write
@@ -14,6 +16,7 @@ permissions:
 jobs:
   deploy-docs:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Dump GitHub context
         env:
