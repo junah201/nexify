@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal, get_args
 
 from nexify.convertors import CONVERTOR_TYPES, Convertor
 from nexify.exceptions import RequestValidationError, ResponseValidationError
-from nexify.models import ModelField, ResponseModelField
+from nexify.models import ModelField, create_model_field
 from nexify.params import Body, Context, Event, Path, Query
 from nexify.responses import HttpResponse, JSONResponse
 from nexify.types import Handler
@@ -237,18 +237,20 @@ class Route:
 
         return body_fields, path_fields, query_fields, event_fields, context_fields
 
-    def get_response_field(self) -> ResponseModelField | PydanticUndefinedType:
+    def get_response_field(self):
         response_model = self.endpoint.__annotations__.get("return", Undefined)
 
         if response_model is Undefined:
-            return Undefined
+            return None
 
-        field = FieldInfo()
-        field.annotation = response_model
-        field.alias = "response"
-
-        model = ResponseModelField(name="response", field_info=field, mode="validation")
-        return model
+        name = f"{self.endpoint.__name__}_response"
+        return create_model_field(
+            FieldInfo(
+                name=name,
+            ),
+            annotation=response_model,
+            name=name,
+        )
 
     def __call__(self, event, _context):
         parsed_data = {}
@@ -263,7 +265,7 @@ class Route:
                     # Just assign it to the parsed_data
                     parsed_data[field.name] = value
                 else:
-                    parsed_data[field.name] = field.validate(value=value)
+                    parsed_data[field.name] = field.validate(value)
             except ValidationError as e:
                 errors.extend(e.errors())
 
@@ -272,7 +274,7 @@ class Route:
 
         try:
             content = self.endpoint(**parsed_data)
-            if self.response_field is not Undefined:
+            if self.response_field:
                 content = self.response_field.validate(content)  # type: ignore
 
             if isinstance(content, HttpResponse):

@@ -5,15 +5,12 @@ from itertools import chain
 from typing import Any, Literal, cast
 
 from nexify.encoders import jsonable_encoder
-from nexify.models import ModelField, ResponseModelField
+from nexify.models import ModelField
 from nexify.openapi.constants import METHODS_WITH_BODY, REF_TEMPLATE
 from nexify.params import Body, ParamTypes
 from nexify.responses import JSONResponse
 from nexify.routing import Route
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
-from pydantic_core import PydanticUndefined
-
-Undefined: Any = PydanticUndefined
 
 
 def get_openapi(
@@ -56,10 +53,10 @@ def get_openapi(
     components: dict[str, dict[str, Any]] = {}
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
-    all_fields: list[ModelField | ResponseModelField] = list(
-        chain.from_iterable(route.fields + [route.response_field] for route in list(routes or []))  # type: ignore[list-item]
-    )
-    all_fields: list[ModelField | ResponseModelField] = [field for field in all_fields if field is not Undefined]  # type: ignore
+
+    all_fields = list(chain.from_iterable(route.fields + [route.response_field] for route in list(routes or [])))
+    all_fields = [field for field in all_fields if field]
+
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
         fields=all_fields,
@@ -139,8 +136,7 @@ def get_openapi_path(
         if route_response_media_type and is_body_allowed_for_status_code(status_code):
             response_schema = {"type": "string"}
             if issubclass(route.response_class, JSONResponse):
-                if route.response_field is not None and route.response_field is not Undefined:
-                    assert isinstance(route.response_field, ResponseModelField)
+                if route.response_field:
                     response_schema = get_schema_from_model_field(
                         field=route.response_field,
                         field_mapping=field_mapping,
@@ -198,10 +194,9 @@ def _get_openapi_operation_parameters(
 
 def get_schema_from_model_field(
     *,
-    field: ModelField | ResponseModelField,
+    field: ModelField,
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
 ) -> JsonSchemaValue:
-    # override_mode: Union[Literal["validation"], None] = None if separate_input_output_schemas else "validation"
     json_schema = field_mapping[(field, field.mode)]
     return json_schema
 
@@ -261,18 +256,15 @@ def get_openapi_operation_metadata(*, route: Route, operation_ids: set[str]) -> 
 
 def get_definitions(
     *,
-    fields: list[ModelField | ResponseModelField],
+    fields: list[ModelField],
     schema_generator: GenerateJsonSchema,
 ) -> tuple[
     dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
     dict[str, dict[str, Any]],
 ]:
-    # override_mode: Literal["validation"] | None = None if separate_input_output_schemas else "validation"
     inputs = [(field, field.mode, field._type_adapter.core_schema) for field in fields]
-    field_mapping, definitions = schema_generator.generate_definitions(
-        inputs=inputs  # type: ignore[arg-type]
-    )
-    return field_mapping, definitions  # type: ignore[return-value]
+    field_mapping, definitions = schema_generator.generate_definitions(inputs=inputs)
+    return field_mapping, definitions  # type: ignore
 
 
 def deep_dict_update(main_dict: dict[Any, Any], update_dict: dict[Any, Any]) -> None:

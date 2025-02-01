@@ -87,10 +87,12 @@ class Param(FieldInfo):
 
         super().__init__(**use_kwargs)
 
-    def validate_annotation(self, annotation: Any) -> None:
+    @classmethod
+    def validate_annotation(cls, annotation: Any) -> None:
         raise NotImplementedError  # pragma: no cover
 
-    def get_source(self, event: dict, context: dict) -> Any:
+    @classmethod
+    def get_source(cls, event: dict, context: dict) -> Any:
         raise NotImplementedError  # pragma: no cover
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
@@ -167,12 +169,14 @@ class Path(Param):
             json_schema_extra=json_schema_extra,
         )
 
-    def validate_annotation(self, annotation: Any) -> None:
+    @classmethod
+    def validate_annotation(cls, annotation: Any) -> None:
         assert issubclass(annotation, str | int | float | bool), (
             "Path parameters must be annotated with str, int, float, or bool"
         )
 
-    def get_source(self, event: dict, context: dict) -> dict:
+    @classmethod
+    def get_source(cls, event: dict, context: dict) -> dict:
         return event.get("pathParameters", {}) or {}
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
@@ -249,12 +253,14 @@ class Query(Param):
             json_schema_extra=json_schema_extra,
         )
 
-    def validate_annotation(self, annotation: Any) -> None:
+    @classmethod
+    def validate_annotation(cls, annotation: Any) -> None:
         assert issubclass(annotation, str | int | float | bool), (
             "Query parameters must be annotated with str, int, float, or bool"
         )
 
-    def get_source(self, event: dict, context: dict) -> dict:
+    @classmethod
+    def get_source(cls, event: dict, context: dict) -> dict:
         return event.get("queryStringParameters", {}) or {}
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
@@ -337,7 +343,8 @@ class Body(FieldInfo):
 
         super().__init__(**use_kwargs)
 
-    def validate_annotation(self, annotation: Any) -> None:
+    @classmethod
+    def validate_annotation(cls, annotation: Any) -> None:
         assert issubclass(annotation, (dict | BaseModel)), "Body parameters must be annotated with dict or BaseModel"
 
     def get_source(self, event: dict, context: dict) -> dict:
@@ -356,10 +363,12 @@ class Body(FieldInfo):
 
 
 class Event(FieldInfo):
-    def validate_annotation(self, annotation: Any) -> None:
+    @classmethod
+    def validate_annotation(cls, annotation: Any) -> None:
         assert issubclass(annotation, dict), "Event parameter must be a dictionary"
 
-    def get_source(self, event: dict, context: dict) -> dict:
+    @classmethod
+    def get_source(cls, event: dict, context: dict) -> dict:
         return event
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
@@ -368,10 +377,12 @@ class Event(FieldInfo):
 
 
 class Context(FieldInfo):
-    def validate_annotation(self, annotation: Any) -> None:
+    @classmethod
+    def validate_annotation(cls, annotation: Any) -> None:
         assert issubclass(annotation, dict), "Context parameter must be a dictionary"
 
-    def get_source(self, event: dict, context: dict) -> dict:
+    @classmethod
+    def get_source(cls, event: dict, context: dict) -> dict:
         return context
 
     def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:

@@ -16,6 +16,7 @@ from nexify.cli.application import create_app
 from nexify.cli.deploy.constants import BASE_TEMPLATE
 from nexify.cli.deploy.package import install_requirements, package_lambda_function
 from nexify.cli.deploy.types import LambdaSpec, NexifyConfig
+from nexify.openapi.docs import get_redoc_html, get_swagger_ui_html
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
@@ -93,6 +94,7 @@ def deploy(
         create_template_task = progress.add_task("Creating CloudFormation template", status="")
         template = create_template(
             lambda_specs,
+            app=app,
             timestamp=timestamp,
             zip_s3_key=zip_s3_key,
             config=config,
@@ -114,6 +116,10 @@ def deploy(
     for spec in lambda_specs:
         url = f"{service_endpoint}{spec.path}"
         msg += f"    - [green]{spec.method:5s}[/green] [link={url}]{url}[/link]\n"
+
+    for endpoint in ["openapi.json", "docs", "redoc"]:
+        url = f"{service_endpoint}/{endpoint}"
+        msg += f"    - [green]{'GET':5s}[/green] [link={url}]{url}[/link]\n"
 
     msg += "\n\nFunctions:\n"
     for spec in lambda_specs:
@@ -201,7 +207,7 @@ def initial_stack_setup(cf_client: CloudFormationClient, stack_name: str) -> str
         response = cf_client.describe_stacks(StackName=stack_name)
         return [
             o.get("OutputValue", "")
-            for o in stack.get("Outputs", [])
+            for o in response["Stacks"][0].get("Outputs", [])
             if o.get("OutputKey", "") == "NexifyDeploymentBucketName"
         ][0]
 
@@ -216,7 +222,7 @@ def upload_zip_to_s3(s3_client: S3Client, bucket_name: str, zip_path: str, zip_k
 
 
 def create_template(
-    lambda_specs: list[LambdaSpec], *, timestamp: int, zip_s3_key: str, config: NexifyConfig
+    lambda_specs: list[LambdaSpec], *, app: Nexify, timestamp: int, zip_s3_key: str, config: NexifyConfig
 ) -> dict[str, Any]:
     t = copy.deepcopy(BASE_TEMPLATE)
 
@@ -444,6 +450,126 @@ def create_template(
             },
             "DependsOn": [spec.permission_key],
         }
+
+    # Add method and resource for OpenAPI
+    openapi_json = app.openapi()
+    openapi_json["servers"] = [
+        {
+            "url": f"/{config['provider']['stage']}",
+            "description": f"Stage: {config['provider']['stage']}",
+        }
+    ] + openapi_json.get("servers", [])
+    t["Resources"]["NexifyOpenAPIResource"] = {
+        "Type": "AWS::ApiGateway::Resource",
+        "Properties": {
+            "ParentId": {"Fn::GetAtt": [api_gateway_key, "RootResourceId"]},
+            "PathPart": "openapi.json",
+            "RestApiId": {"Ref": api_gateway_key},
+        },
+    }
+    t["Resources"]["NexifyOpenAPIMethod"] = {
+        "Type": "AWS::ApiGateway::Method",
+        "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "GET",
+            "MethodResponses": [{"StatusCode": "200", "ResponseModels": {}}],
+            "RequestParameters": {},
+            "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {"application/json": "{statusCode:200}"},
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                    {"StatusCode": "200", "ResponseTemplates": {"application/json": json.dumps(openapi_json)}}
+                ],
+            },
+            "ResourceId": {"Ref": "NexifyOpenAPIResource"},
+            "RestApiId": {"Ref": api_gateway_key},
+        },
+    }
+
+    swagger_ui_html = get_swagger_ui_html(openapi_schema=openapi_json, title=app.title)
+    t["Resources"]["NexifySwaggerUIResource"] = {
+        "Type": "AWS::ApiGateway::Resource",
+        "Properties": {
+            "ParentId": {"Fn::GetAtt": [api_gateway_key, "RootResourceId"]},
+            "PathPart": "docs",
+            "RestApiId": {"Ref": api_gateway_key},
+        },
+    }
+    t["Resources"]["NexifySwaggerUIMethod"] = {
+        "Type": "AWS::ApiGateway::Method",
+        "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "GET",
+            "MethodResponses": [
+                {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                        "method.response.header.Content-Type": True,
+                    },
+                }
+            ],
+            "RequestParameters": {},
+            "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {"application/json": "{statusCode:200}"},
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                    {
+                        "StatusCode": "200",
+                        "ResponseTemplates": {"text/html": swagger_ui_html},
+                        "ResponseParameters": {
+                            "method.response.header.Content-Type": "'text/html'",
+                        },
+                    }
+                ],
+            },
+            "ResourceId": {"Ref": "NexifySwaggerUIResource"},
+            "RestApiId": {"Ref": api_gateway_key},
+        },
+    }
+
+    redoc_html = get_redoc_html(openapi_url="openapi.json", title=app.title)
+    t["Resources"]["NexifyReDocResource"] = {
+        "Type": "AWS::ApiGateway::Resource",
+        "Properties": {
+            "ParentId": {"Fn::GetAtt": [api_gateway_key, "RootResourceId"]},
+            "PathPart": "redoc",
+            "RestApiId": {"Ref": api_gateway_key},
+        },
+    }
+    t["Resources"]["NexifyReDocMethod"] = {
+        "Type": "AWS::ApiGateway::Method",
+        "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "GET",
+            "MethodResponses": [
+                {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                        "method.response.header.Content-Type": True,
+                    },
+                }
+            ],
+            "RequestParameters": {},
+            "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {"application/json": "{statusCode:200}"},
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                    {
+                        "StatusCode": "200",
+                        "ResponseTemplates": {"text/html": redoc_html},
+                        "ResponseParameters": {
+                            "method.response.header.Content-Type": "'text/html'",
+                        },
+                    }
+                ],
+            },
+            "ResourceId": {"Ref": "NexifyReDocResource"},
+            "RestApiId": {"Ref": api_gateway_key},
+        },
+    }
 
     # Define API Gateway Deployment
     # TODO: If HTTP API, use AWS::ApiGatewayV2::Deployment

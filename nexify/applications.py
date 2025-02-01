@@ -6,6 +6,7 @@ from typing import (
 )
 
 from nexify import routing
+from nexify.openapi.docs import get_swagger_ui_html
 from nexify.openapi.utils import get_openapi
 from nexify.responses import HttpResponse, JSONResponse
 from nexify.types import Handler
@@ -1169,3 +1170,15 @@ class Nexify:
             )
 
         return self.openapi_schema
+
+    def swagger_html(self) -> str:
+        return get_swagger_ui_html(
+            openapi_schema=self.openapi(),
+            title=self.title,
+        )
+
+    def redoc_html(self) -> str:
+        return get_swagger_ui_html(
+            openapi_url="/openapi.json",
+            title=self.title,
+        )
