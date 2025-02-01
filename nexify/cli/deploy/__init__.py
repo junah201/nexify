@@ -454,10 +454,16 @@ def create_template(
 
     # Add method and resource for OpenAPI
     openapi_json = app.openapi()
+    with open("./.nexify/openapi.json", "w") as f:
+        json.dump(openapi_json, f, indent=2)
+    openapi_json_string = json.dumps(openapi_json)
+    openapi_json_string = openapi_json_string.replace(
+        "$ref", "\$ref"
+    )  # It only for resolving this issue: https://github.com/junah201/nexify/issues/6
+
     openapi_json["servers"] = [
         {
             "url": f"/{config['provider']['stage']}",
-            "description": f"Stage: {config['provider']['stage']}",
         }
     ] + openapi_json.get("servers", [])
     t["Resources"]["NexifyOpenAPIResource"] = {
@@ -478,9 +484,8 @@ def create_template(
             "Integration": {
                 "Type": "MOCK",
                 "RequestTemplates": {"application/json": "{statusCode:200}"},
-                "ContentHandling": "CONVERT_TO_TEXT",
                 "IntegrationResponses": [
-                    {"StatusCode": "200", "ResponseTemplates": {"application/json": json.dumps(openapi_json)}}
+                    {"StatusCode": "200", "ResponseTemplates": {"application/json": openapi_json_string}}
                 ],
             },
             "ResourceId": {"Ref": "NexifyOpenAPIResource"},
@@ -488,7 +493,7 @@ def create_template(
         },
     }
 
-    swagger_ui_html = get_swagger_ui_html(openapi_schema=openapi_json, title=app.title)
+    swagger_ui_html = get_swagger_ui_html(openapi_url="openapi.json", title=app.title)
     t["Resources"]["NexifySwaggerUIResource"] = {
         "Type": "AWS::ApiGateway::Resource",
         "Properties": {
@@ -514,7 +519,6 @@ def create_template(
             "Integration": {
                 "Type": "MOCK",
                 "RequestTemplates": {"application/json": "{statusCode:200}"},
-                "ContentHandling": "CONVERT_TO_TEXT",
                 "IntegrationResponses": [
                     {
                         "StatusCode": "200",
@@ -556,7 +560,6 @@ def create_template(
             "Integration": {
                 "Type": "MOCK",
                 "RequestTemplates": {"application/json": "{statusCode:200}"},
-                "ContentHandling": "CONVERT_TO_TEXT",
                 "IntegrationResponses": [
                     {
                         "StatusCode": "200",

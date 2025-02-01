@@ -1163,12 +1163,12 @@ class Nexify:
 
     def swagger_html(self) -> str:
         return get_swagger_ui_html(
-            openapi_schema=self.openapi(),
+            openapi_url="openapi.json",
             title=self.title,
         )
 
     def redoc_html(self) -> str:
         return get_swagger_ui_html(
-            openapi_url="/openapi.json",
+            openapi_url="openapi.json",
             title=self.title,
         )

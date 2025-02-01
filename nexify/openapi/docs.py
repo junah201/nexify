@@ -24,11 +24,14 @@ swagger_ui_default_parameters: Annotated[
 
 def get_swagger_ui_html(
     *,
-    openapi_schema: Annotated[
-        dict[str, Any],
+    openapi_url: Annotated[
+        str,
         Doc(
             """
-            The OpenAPI schema as a dictionary.
+            The OpenAPI URL that Swagger UI should load and use.
+
+            This is normally done automatically by Nexify using the default URL
+            `/openapi.json`.
             """
         ),
     ],
@@ -118,10 +121,8 @@ def get_swagger_ui_html(
     <script src="{swagger_js_url}"></script>
     <!-- `SwaggerUIBundle` is now available on the page -->
     <script>
-    const openapi_schema = {json.dumps(openapi_schema)};
-
     const ui = SwaggerUIBundle({{
-        spec: openapi_schema,
+        url: '{openapi_url}',
     """
 
     for key, value in current_swagger_ui_parameters.items():
