@@ -159,7 +159,7 @@ def test_openapi_with_body():
     ],
 )
 def test_openapi_with_openapi_extra(openapi_extra):
-    app = Nexify(title="Nexify", version="0.1.0", description="A simple API", openapi_extra=openapi_extra)
+    app = Nexify(title="Nexify", version="0.1.0", description="A simple API")
 
     @app.get("/items", openapi_extra=openapi_extra)
     def get_items(): ...
@@ -618,6 +618,88 @@ def test_openapi_with_status_code():
                     "parameters": [{"name": "item_id", "in": "path", "required": True, "schema": {"type": "string"}}],
                     "responses": {"204": {"description": "Successful Response"}},
                 },
+            },
+        },
+    }
+
+
+def test_openapi_with_basic_template():
+    try:
+        from nexify.templates.basic.main import app
+    except ImportError:
+        pytest.skip("Basic template not found")
+
+    assert app.openapi() == {
+        "openapi": "3.1.0",
+        "info": {"title": "My Nexify API", "version": "0.1.0", "description": ""},
+        "servers": [],
+        "components": {
+            "schemas": {
+                "Item": {
+                    "properties": {
+                        "id": {"title": "Id", "type": "string"},
+                        "name": {"title": "Name", "type": "string"},
+                        "price": {"minimum": 0, "title": "Price", "type": "integer"},
+                    },
+                    "required": ["id", "name", "price"],
+                    "title": "Item",
+                    "type": "object",
+                }
+            }
+        },
+        "paths": {
+            "/items": {
+                "get": {
+                    "summary": "Read Items",
+                    "operationId": "read_items_items_get",
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "in": "query",
+                            "required": False,
+                            "schema": {"type": "integer", "default": 10},
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Successful Response",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Item"}}
+                                }
+                            },
+                        }
+                    },
+                },
+                "post": {
+                    "summary": "Create Item",
+                    "operationId": "create_item_items_post",
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Item"}}},
+                    },
+                    "responses": {"204": {"description": "Successful Response"}},
+                },
+            },
+            "/items/{item_id}": {
+                "get": {
+                    "summary": "Read Item",
+                    "operationId": "read_item_items__item_id__get",
+                    "parameters": [
+                        {
+                            "name": "item_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string", "minLength": 2, "maxLength": 8},
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Successful Response",
+                            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Item"}}},
+                        }
+                    },
+                }
             },
         },
     }
