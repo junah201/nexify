@@ -515,6 +515,9 @@ def test_openapi_with_status_code():
         name: str
         description: str
 
+    @app.get("/items", status_code=status.HTTP_200_OK)
+    def get_items(item: Annotated[Item, Body()]) -> list[Item]: ...
+
     @app.post("/items", status_code=status.HTTP_204_NO_CONTENT)
     def create_item(item: Annotated[Item, Body()]): ...
 
@@ -552,6 +555,24 @@ def test_openapi_with_status_code():
         },
         "paths": {
             "/items": {
+                "get": {
+                    "summary": "Get Items",
+                    "operationId": "get_items_items_get",
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Item"}}},
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Successful Response",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Item"}}
+                                }
+                            },
+                        }
+                    },
+                },
                 "post": {
                     "summary": "Create Item",
                     "operationId": "create_item_items_post",
