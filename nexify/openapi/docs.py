@@ -67,7 +67,7 @@ def get_swagger_ui_html(
             The URL of the favicon to use. It is normally shown in the browser tab.
             """
         ),
-    ] = "https://fastapi.tiangolo.com/img/favicon.png",
+    ] = "/favicon.png",
     oauth2_redirect_url: Annotated[
         str | None,
         Doc(
@@ -194,7 +194,7 @@ def get_redoc_html(
             The URL of the favicon to use. It is normally shown in the browser tab.
             """
         ),
-    ] = "https://fastapi.tiangolo.com/img/favicon.png",
+    ] = "/favicon.png",
     with_google_fonts: Annotated[
         bool,
         Doc(
