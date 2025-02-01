@@ -117,9 +117,10 @@ def deploy(
         url = f"{service_endpoint}{spec.path}"
         msg += f"    - [green]{spec.method:5s}[/green] [link={url}]{url}[/link]\n"
 
-    for endpoint in ["openapi.json", "docs", "redoc"]:
+    msg += "\n\nAPI Docs:\n"
+    for endpoint, name in [("openapi.json", "openapi"), ("docs", "Swagger"), ("redoc", "ReDoc")]:
         url = f"{service_endpoint}/{endpoint}"
-        msg += f"    - [green]{'GET':5s}[/green] [link={url}]{url}[/link]\n"
+        msg += f"    - [green]{name:10s}[/green] [link={url}]{url}[/link]\n"
 
     msg += "\n\nFunctions:\n"
     for spec in lambda_specs:
