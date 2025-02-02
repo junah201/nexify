@@ -84,6 +84,20 @@ plugins:
 
 nav:
   - Nexify: index.md
+  - Learn:
+      - learn/index.md
+      - Tutorial - User Guide:
+          - learn/tutorial/index.md
+          - learn/tutorial/first-steps.md
+          - learn/tutorial/path-params.md
+          - learn/tutorial/query-params.md
+          - learn/tutorial/body.md
+          - learn/tutorial/event-and-context.md
+          - learn/tutorial/query-params-validations.md
+          - learn/tutorial/path-params-validations.md
+          - learn/tutorial/body-validations.md
+          - learn/tutorial/returning-responses.md
+
   - Reference (Code API):
       - reference/index.md
       - reference/nexify.md

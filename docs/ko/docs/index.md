@@ -1,8 +1,8 @@
 ---
 
-**Documentation**: <a href="https://nexify.junah.dev" target="_blank">https://nexify.junah.dev</a>
+**공식 문서**: <a href="https://nexify.junah.dev" target="_blank">https://nexify.junah.dev</a>
 
-**Source Code**: <a href="https://github.com/junah201/nexify" target="_blank">https://github.com/junah201/nexify</a>
+**소스 코드**: <a href="https://github.com/junah201/nexify" target="_blank">https://github.com/junah201/nexify</a>
 
 ---
 
@@ -24,7 +24,7 @@ Nexify는 다음과 같은 라이브러리를 필요로 합니다.
 
 ## 설치
 
-먼저 <a href="https://fastapi.tiangolo.com/virtual-environments/" class="external-link" target="_blank">가상환경</a>을 설정한 후, Nexify를 설치하세요.
+먼저 가상환경을 설정한 후, Nexify를 설치하세요.
 
 <div class="termy">
 
@@ -36,7 +36,7 @@ $ pip install "nexify[cli]"
 
 </div>
 
-/// note
+/// info
 일부 터미널 환경에서는 `"nexify[cli]"`처럼 따옴표를 사용해야 올바르게 설치됩니다.
 ///
 
@@ -153,6 +153,12 @@ Endpoints:
     - GET   https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/items/{item_id}
 
 
+API Docs:
+    - openapi    https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/openapi.json
+    - Swagger    https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/docs
+    - ReDoc      https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/redoc
+
+
 Functions:
     - read_items
     - create_item
@@ -163,7 +169,7 @@ Functions:
 
 배포가 완료되면 API 엔드포인트가 생성됩니다.
 
-/// note
+/// info
 첫 배포에는 약 1분이 소요될 수 있지만, 이후 업데이트 배포는 30초 이내로 완료됩니다.
 ///
 
@@ -176,7 +182,7 @@ Functions:
 https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/items/12
 ```
 
-/// note
+/// check
 URL은 `nexify deploy` 명령어를 실행 후 결과값으로 나온 URL을 사용하여야 합니다.
 ///
 
@@ -198,9 +204,37 @@ URL은 `nexify deploy` 명령어를 실행 후 결과값으로 나온 URL을 사
 
 Nexify는 내부적으로 <a href="https://docs.pydantic.dev" class="external-link" target="_blank">Pydantic</a> 이용해서 입력값과 응답값이 올바른지 검증합니다.
 
-### Open API 문서
+### Swagger UI
 
-Nexify는 자동으로 OpenAPI 문서를 생성합니다. Swagger UI 및 ReDoc를 사용하여 API 문서를 확인할 수 있습니다.
+브라우저로 다음 URL을 열어 Swagger UI 문서를 확인해보세요.
+
+```
+https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/docs
+```
+
+/// check
+URL은 `nexify deploy` 명령어를 실행 후 결과값으로 나온 URL을 사용하여야 합니다.
+///
+
+Swagger UI를 기반으로 자동 생성된 API 문서를 확인할 수 있습니다.
+
+![Swagger UI](https://nexify.junah.dev/img/index/index-01-swagger-ui-simple.png)
+
+### ReDoc
+
+이번에는 다음 URL을 열어 ReDoc 문서를 확인해보세요.
+
+```
+https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/redoc
+```
+
+/// check
+URL은 `nexify deploy` 명령어를 실행 후 결과값으로 나온 URL을 사용하여야 합니다.
+///
+
+ReDoc를 기반으로 자동 생성된 API 문서를 확인할 수 있습니다.
+
+![ReDoc](https://nexify.junah.dev/img/index/index-02-redoc-simple.png)
 
 ### 요약
 

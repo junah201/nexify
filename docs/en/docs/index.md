@@ -10,10 +10,10 @@ Nexify is a lightweight web framework for building APIs on AWS Lambda's Python r
 
 The key features are:
 
-- 🚀 **Automatic Parsing**: Automatically parses AWS Lambda's Event and Context objects.
-- 🔍 **Data Validation**: Validate user's request and response using <a href="https://docs.pydantic.dev" target="_blank">Pydantic</a>.
-- 📜 **OpenAPI Documentation**: Generates API documentation with Swagger UI and ReDoc.
-- ☁️ **Deployment Automation**: Deploy AWS Lambda and related infrastructure with a simple command.
+- 🚀 **Automatic Parsing**: Automatically parses <a href="https://aws.amazon.com/pm/lambda" target="_blank">AWS Lambda</a>'s Event and Context objects.
+- 🔍 **Data Validation**: Validate user's request and response using <a href="https://docs.pydantic.dev" class="external-link" target="_blank">Pydantic</a>.
+- 📜 **OpenAPI Documentation**: Generates API documentation with <a href="https://github.com/swagger-api/swagger-ui" class="external-link" target="_blank">Swagger UI</a> and <a href="https://github.com/Redocly/redoc" class="external-link" target="_blank">ReDoc</a>.
+- ☁️ **Deployment Automation**: Deploy <a href="https://aws.amazon.com/pm/lambda" target="_blank">AWS Lambda</a> and related infrastructure with a simple command.
 
 ## Requirements
 
@@ -36,7 +36,7 @@ $ pip install "nexify[cli]"
 
 </div>
 
-/// note
+/// info
 Some terminal environments require quoting "nexify[cli]" for correct installation.
 ///
 
@@ -170,7 +170,7 @@ Open the following URL in a browser to check the API response:
 https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/items/12
 ```
 
-/// note
+/// info
 Use the URL displayed after executing `nexify deploy` command.
 ///
 
@@ -191,9 +191,29 @@ Congratulations 🎉 You have already created an API.
 
 Nexify uses <a href="https://docs.pydantic.dev" class="external-link" target="_blank">Pydantic</a> internally to validate the input and output data.
 
-### Open API Documentation
+### Swagger UI
 
-Nexify automatically generates OpenAPI documentation. You can view the API documentation using Swagger UI and ReDoc.
+Now go to <a href="https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/docs" class="external-link" target="_blank">https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/docs</a>.
+
+/// check
+Please use the output URL after running the `nexify deploy` command.
+///
+
+You will see the automatic interactive API documentation (provided by <a href="https://github.com/swagger-api/swagger-ui" class="external-link" target="_blank">Swagger UI</a>):
+
+![Swagger UI](https://nexify.junah.dev/img/index/index-01-swagger-ui-simple.png)
+
+### ReDoc
+
+And now, go to <a href="https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/redoc" class="external-link" target="_blank">https://apigatewayid.execute-api.ap-northeast-2.amazonaws.com/prod/redoc</a>.
+
+/// check
+Please use the output URL after running the `nexify deploy` command.
+///
+
+You will see the automatic interactive API documentation (provided by <a href="https://github.com/Redocly/redoc" class="external-link" target="_blank">ReDoc</a>):
+
+![ReDoc](https://nexify.junah.dev/img/index/index-02-redoc-simple.png)
 
 ### Summary
 
