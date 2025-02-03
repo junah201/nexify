@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import (
     Annotated,
@@ -6,7 +7,7 @@ from typing import (
 )
 
 from nexify.types import IncEx
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
@@ -49,14 +50,21 @@ class ModelField:
         from_attributes: bool = True,
         context: dict[str, Any] | None = None,
         experimental_allow_partial: bool | Literal["off", "on", "trailing-strings"] = False,
-    ) -> Any:
-        return self._type_adapter.validate_python(
-            object,
-            strict=strict,
-            from_attributes=from_attributes,
-            context=context,
-            experimental_allow_partial=experimental_allow_partial,
-        )
+        loc: tuple[str | int, ...] = (),
+    ) -> tuple[Any, list[dict[str, Any]] | None]:
+        try:
+            return (
+                self._type_adapter.validate_python(
+                    object,
+                    strict=strict,
+                    from_attributes=from_attributes,
+                    context=context,
+                    experimental_allow_partial=experimental_allow_partial,
+                ),
+                None,
+            )
+        except ValidationError as exc:
+            return None, _regenerate_error_with_loc(errors=exc.errors(include_url=False), loc_prefix=loc)
 
     def serialize(
         self,
@@ -107,3 +115,9 @@ def create_model_field(
         name=name,
         mode="validation",
     )
+
+
+def _regenerate_error_with_loc(*, errors: Sequence[Any], loc_prefix: tuple[str | int, ...]) -> list[dict[str, Any]]:
+    updated_loc_errors: list[Any] = [{**err, "loc": loc_prefix + err.get("loc", ())} for err in errors]
+
+    return updated_loc_errors

@@ -1,8 +1,7 @@
+import json
 from typing import Annotated
 
-import pytest
 from nexify import Nexify, status
-from nexify.exceptions import ResponseValidationError
 from nexify.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
@@ -135,17 +134,22 @@ def test_plain_text_response_class_with_response_field():
     @app.get("/text-response-with-invalid-response-field", response_class=PlainTextResponse)
     def text_response_with_pydantic_response_field() -> TestResponse:
         return TestResponse(
-            summary="Invalid Response Field",
-            description="This endpoint has invalid response field",
+            summary="valid Response Field",
+            description="This endpoint has valid response field",
         )
 
-    with pytest.raises(ResponseValidationError):
-        text_response_with_invalid_int_response_field({}, {})
+    res = text_response_with_invalid_int_response_field({}, {})
+    print(res)
+    assert res == {
+        "statusCode": 500,
+        "headers": {"content-type": "application/json; charset=utf-8"},
+        "body": json.dumps({"detail": "Internal Server Error"}),
+    }
 
     response = text_response_with_pydantic_response_field({}, {})
     assert response == {
         "statusCode": 200,
-        "body": "{'summary': 'Invalid Response Field', 'description': 'This endpoint has invalid response field'}",
+        "body": "{'summary': 'valid Response Field', 'description': 'This endpoint has valid response field'}",
         "headers": {"content-type": "text/plain; charset=utf-8"},
     }
 

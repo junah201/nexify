@@ -10,9 +10,9 @@ from nexify.exceptions import RequestValidationError, ResponseValidationError
 from nexify.models import ModelField, create_model_field
 from nexify.params import Body, Context, Event, Path, Query
 from nexify.responses import HttpResponse, JSONResponse
-from nexify.types import Handler
+from nexify.types import ExceptionHandler, Handler
 from nexify.utils import is_annotated
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined, PydanticUndefinedType
 from typing_extensions import Doc
@@ -146,6 +146,18 @@ class Route:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ) -> None:
         assert path.startswith("/"), "Path must start with '/'"
         self.path = path
@@ -170,6 +182,8 @@ class Route:
 
         self.response_field = self.get_response_field()
         self.response_class = response_class
+
+        self.exception_handlers = exception_handlers or {}
 
     def get_fields(
         self,
@@ -252,48 +266,63 @@ class Route:
             name=name,
         )
 
-    def __call__(self, event, _context):
+    def process_input(self, event, _context) -> dict[str, Any]:
         parsed_data = {}
         errors = []
+
         for field in self.fields:
-            try:
-                field.field_info.validate_annotation(field.field_info.annotation)
-                source = field.field_info.get_source(event, _context)
-                value = field.field_info.get_value_from_source(source)
-                if isinstance(field.field_info, Event | Context):
-                    # When we have an Event or Context parameter, we don't need to validate the value
-                    # Just assign it to the parsed_data
-                    parsed_data[field.name] = value
-                else:
-                    parsed_data[field.name] = field.validate(value)
-            except ValidationError as e:
-                errors.extend(e.errors())
+            source = field.field_info.get_source(event, _context)
+            value, errors_ = field.field_info.get_value_from_source(source)
+            if errors_:
+                errors.extend(errors_)
+                continue
+
+            v_, errors_ = field.validate(
+                value,
+                loc=(
+                    field.field_info.__class__.__name__.lower(),
+                    field.name,
+                ),
+            )
+            if errors_:
+                errors.extend(errors_)
+                continue
+
+            parsed_data[field.name] = v_
 
         if errors:
             raise RequestValidationError(errors, body=event)
 
-        try:
-            content = self.endpoint(**parsed_data)
-            if self.response_field:
-                content = self.response_field.validate(content)  # type: ignore
+        return parsed_data
 
-            if isinstance(content, HttpResponse):
-                response = content
-            else:
-                response = self.response_class(content=content, status_code=self.status_code)
-            return response.render()
-        except ValidationError as e:
-            raise ResponseValidationError(e.errors(), body=content)
-        # except Exception:
-        #     res = {
-        #         "statusCode": 500,
-        #         "body": json.dumps(
-        #             {
-        #                 "detail": "Internal Server Error",
-        #             }
-        #         ),
-        #     }
-        #     return res
+    def execute_handler(self, parsed_data: dict[str, Any]):
+        content = self.endpoint(**parsed_data)
+        if self.response_field:
+            content, _errors = self.response_field.validate(content, loc=("response",))  # type: ignore
+
+            if _errors:
+                raise ResponseValidationError(_errors, body=content)
+
+        if isinstance(content, HttpResponse):
+            response = content
+        else:
+            response = self.response_class(content=content, status_code=self.status_code)
+
+        return response.render()
+
+    def handle_request(self, event, _context):
+        parsed_data = self.process_input(event, _context)
+        return self.execute_handler(parsed_data)
+
+    def __call__(self, event, _context):
+        try:
+            return self.handle_request(event, _context)
+        except Exception as e:
+            for exception, handler in self.exception_handlers.items():
+                if isinstance(e, exception):
+                    res = handler(event, _context, e)
+                    return res.render()
+            raise e
 
 
 class APIRouter:
@@ -449,6 +478,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ) -> Callable[[Callable], Handler]:
         def decorator(func: Callable) -> Handler:
             route = self.create_route(
@@ -465,6 +506,7 @@ class APIRouter:
                 response_class=response_class,
                 name=name,
                 openapi_extra=openapi_extra,
+                exception_handlers=exception_handlers,
             )
             self.routes.append(route)
             return route
@@ -487,6 +529,11 @@ class APIRouter:
         response_class: type[HttpResponse] = JSONResponse,
         name: str | None = None,
         openapi_extra: dict[str, Any] | None = None,
+        exception_handlers: dict[
+            int | type[Exception],
+            ExceptionHandler,
+        ]
+        | None = None,
     ) -> Route:
         return Route(
             path=self.prefix + path,
@@ -502,6 +549,7 @@ class APIRouter:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
     def get(
@@ -626,6 +674,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ):
         return self.route(
             path=self.prefix + path,
@@ -640,6 +700,7 @@ class APIRouter:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
     def put(
@@ -764,6 +825,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ):
         return self.route(
             path=self.prefix + path,
@@ -774,10 +847,10 @@ class APIRouter:
             description=description,
             response_description=response_description,
             deprecated=deprecated,
-            operation_id=operation_id,
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
     def post(
@@ -902,6 +975,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ):
         return self.route(
             path=self.prefix + path,
@@ -912,10 +997,10 @@ class APIRouter:
             description=description,
             response_description=response_description,
             deprecated=deprecated,
-            operation_id=operation_id,
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
     def delete(
@@ -1040,6 +1125,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ):
         return self.route(
             path=self.prefix + path,
@@ -1050,10 +1147,10 @@ class APIRouter:
             description=description,
             response_description=response_description,
             deprecated=deprecated,
-            operation_id=operation_id,
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
     def head(
@@ -1178,6 +1275,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ):
         return self.route(
             path=self.prefix + path,
@@ -1188,10 +1297,10 @@ class APIRouter:
             description=description,
             response_description=response_description,
             deprecated=deprecated,
-            operation_id=operation_id,
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
     def options(
@@ -1316,6 +1425,18 @@ class APIRouter:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
     ):
         return self.route(
             path=self.prefix + path,
@@ -1326,10 +1447,10 @@ class APIRouter:
             description=description,
             response_description=response_description,
             deprecated=deprecated,
-            operation_id=operation_id,
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=exception_handlers,
         )
 
 

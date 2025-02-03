@@ -6,10 +6,16 @@ from typing import (
 )
 
 from nexify import routing
+from nexify.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+    response_validation_exception_handler,
+)
+from nexify.exceptions import HTTPException, RequestValidationError, ResponseValidationError
 from nexify.openapi.docs import get_swagger_ui_html
 from nexify.openapi.utils import get_openapi
 from nexify.responses import HttpResponse, JSONResponse
-from nexify.types import Handler
+from nexify.types import ExceptionHandler, Handler
 from typing_extensions import Doc
 
 
@@ -162,6 +168,18 @@ class Nexify:
                 """
             ),
         ] = None,
+        exception_handlers: Annotated[
+            dict[
+                int | type[Exception],
+                ExceptionHandler,
+            ]
+            | None,
+            Doc(
+                """
+                A dictionary with handlers for exceptions.
+                """
+            ),
+        ] = None,
         terms_of_service: Annotated[
             str | None,
             Doc(
@@ -303,6 +321,14 @@ class Nexify:
         self.deprecated = deprecated
         self.router = routing.APIRouter()
 
+        self.exception_handlers: dict[
+            int | type[Exception],
+            ExceptionHandler,
+        ] = exception_handlers or {}
+        self.exception_handlers.setdefault(HTTPException, http_exception_handler)
+        self.exception_handlers.setdefault(RequestValidationError, request_validation_exception_handler)
+        self.exception_handlers.setdefault(ResponseValidationError, response_validation_exception_handler)
+
     def get(
         self,
         path: Annotated[
@@ -441,6 +467,7 @@ class Nexify:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=self.exception_handlers,
         )
 
     def put(
@@ -581,6 +608,7 @@ class Nexify:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=self.exception_handlers,
         )
 
     def post(
@@ -721,6 +749,7 @@ class Nexify:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=self.exception_handlers,
         )
 
     def delete(
@@ -861,6 +890,7 @@ class Nexify:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=self.exception_handlers,
         )
 
     def options(
@@ -1001,6 +1031,7 @@ class Nexify:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=self.exception_handlers,
         )
 
     def head(
@@ -1141,6 +1172,7 @@ class Nexify:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
+            exception_handlers=self.exception_handlers,
         )
 
     def openapi(self) -> dict[str, Any]:

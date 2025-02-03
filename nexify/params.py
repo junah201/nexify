@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Any
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
-from nexify.exceptions import RequestValidationError
 from nexify.openapi.models import Example
 from pydantic import AliasChoices, AliasPath, BaseModel
 from pydantic.fields import FieldInfo
@@ -179,14 +178,14 @@ class Path(Param):
     def get_source(cls, event: dict, context: dict) -> dict:
         return event.get("pathParameters", {}) or {}
 
-    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+    def get_value_from_source(
+        self, source: dict, default_value: Any = Undefined
+    ) -> tuple[Any, list[dict[str, Any]] | None]:
         default = self.get_default(call_default_factory=True)
         default = default if default is not Undefined else default_value
 
         value = source.get(self.alias, default)
-        if value is Undefined:
-            raise RequestValidationError([], body=source)
-        return value
+        return value, None
 
 
 class Query(Param):
@@ -263,14 +262,16 @@ class Query(Param):
     def get_source(cls, event: dict, context: dict) -> dict:
         return event.get("queryStringParameters", {}) or {}
 
-    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+    def get_value_from_source(
+        self, source: dict, default_value: Any = Undefined
+    ) -> tuple[Any, list[dict[str, Any]] | None]:
         default = self.get_default(call_default_factory=True)
         default = default if default is not Undefined else default_value
 
         value = source.get(self.alias, default)
         if value is Undefined:
-            raise RequestValidationError([], body=source)
-        return value
+            return None, [{"loc": ["query", self.alias], "msg": "Field required", "type": "missing", "input": None}]
+        return value, None
 
 
 class Body(FieldInfo):
@@ -350,13 +351,15 @@ class Body(FieldInfo):
     def get_source(self, event: dict, context: dict) -> dict:
         return json.loads(event.get("body", "{}")) or {}
 
-    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+    def get_value_from_source(
+        self, source: dict, default_value: Any = Undefined
+    ) -> tuple[Any, list[dict[str, Any]] | None]:
         default = self.get_default(call_default_factory=True)
         default = default if default is not Undefined else default_value
         value = source or default
         if value is Undefined:
-            raise RequestValidationError([], body=source)
-        return value
+            return None, [{"loc": ["body"], "msg": "Field required", "type": "missing", "input": None}]
+        return value, None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.default})"
@@ -371,9 +374,11 @@ class Event(FieldInfo):
     def get_source(cls, event: dict, context: dict) -> dict:
         return event
 
-    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+    def get_value_from_source(
+        self, source: dict, default_value: Any = Undefined
+    ) -> tuple[Any, list[dict[str, Any]] | None]:
         assert default_value is Undefined, "Event parameter must do not have default values"
-        return source
+        return source, None
 
 
 class Context(FieldInfo):
@@ -385,9 +390,11 @@ class Context(FieldInfo):
     def get_source(cls, event: dict, context: dict) -> dict:
         return context
 
-    def get_value_from_source(self, source: dict, default_value: Any = Undefined) -> Any:
+    def get_value_from_source(
+        self, source: dict, default_value: Any = Undefined
+    ) -> tuple[Any, list[dict[str, Any]] | None]:
         assert default_value is Undefined, "Context parameter must do not have default values"
-        return source
+        return source, None
 
 
 class Response(FieldInfo): ...

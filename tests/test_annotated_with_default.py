@@ -3,7 +3,6 @@ from typing import Annotated
 
 import pytest
 from nexify import Body, Context, Event, Nexify, Path, Query
-from nexify.exceptions import RequestValidationError
 from pydantic import BaseModel
 
 
@@ -41,8 +40,12 @@ def test_query_with_no_default():
     @app.get("/query_with_no_default")
     def query_with_no_default(foo: Annotated[str, Query()]): ...
 
-    with pytest.raises(RequestValidationError):
-        query_with_no_default({}, {})
+    res = query_with_no_default({}, {})
+    assert res == {
+        "statusCode": 422,
+        "headers": {"content-type": "application/json; charset=utf-8"},
+        "body": '{"detail": [{"loc": ["query", "foo"], "msg": "Field required", "type": "missing", "input": null}]}',
+    }
 
 
 @pytest.mark.parametrize(
@@ -106,30 +109,43 @@ def test_body_with_default():
     body_with_body_default_factory({}, {})
 
 
-def test_body_with_no_default():
+@pytest.mark.parametrize(
+    "input",
+    [
+        ({"foo": "bar"}),
+    ],
+)
+def test_body_with_no_default(input):
     app = Nexify()
 
     class Foo(BaseModel):
         foo: str
 
     @app.get("/body_with_no_default")
-    def body_with_no_default_dict(foo: Annotated[dict, Body()]):
-        assert json.dumps(foo, sort_keys=True) == json.dumps({"foo": "bar"}, sort_keys=True)
+    def body_with_no_default_dict(body: Annotated[dict, Body()]):
+        assert body == input
 
     @app.get("/body_with_no_default")
-    def body_with_no_default_pydantic(foo: Annotated[Foo, Body()]):
-        assert foo == Foo(foo="bar")
+    def body_with_no_default_pydantic(body: Annotated[Foo, Body()]):
+        assert body == Foo.model_validate(input)
 
-    with pytest.raises(RequestValidationError):
-        body_with_no_default_dict({}, {})
-
-    with pytest.raises(RequestValidationError):
-        body_with_no_default_pydantic({}, {})
-
-    event = {
-        "body": json.dumps({"foo": "bar"}),
+    res = body_with_no_default_dict({}, {})
+    assert res == {
+        "statusCode": 422,
+        "headers": {"content-type": "application/json; charset=utf-8"},
+        "body": json.dumps({"detail": [{"loc": ["body"], "msg": "Field required", "type": "missing", "input": None}]}),
     }
 
+    res = body_with_no_default_pydantic({}, {})
+    assert res == {
+        "statusCode": 422,
+        "headers": {"content-type": "application/json; charset=utf-8"},
+        "body": json.dumps({"detail": [{"loc": ["body"], "msg": "Field required", "type": "missing", "input": None}]}),
+    }
+
+    event = {
+        "body": json.dumps(input),
+    }
     body_with_no_default_dict(event, {})
     body_with_no_default_pydantic(event, {})
 
