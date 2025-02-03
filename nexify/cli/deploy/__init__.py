@@ -370,7 +370,7 @@ def create_template(
 
     # Define API Resources from Tree
     def create_api_resource(resource: dict, parent_id: dict | None = None):
-        if resource["full_path"] == "":
+        if resource["full_path"] == "" or resource["full_path"] == "/":
             for child in resource["children"]:
                 create_api_resource(resource["children"][child], {"Fn::GetAtt": [api_gateway_key, "RootResourceId"]})
             return
@@ -458,7 +458,8 @@ def create_template(
         json.dump(openapi_json, f, indent=2)
     openapi_json_string = json.dumps(openapi_json)
     openapi_json_string = openapi_json_string.replace(
-        "$ref", "\$ref"
+        "$ref",
+        "\$ref",  # noqa: W605
     )  # It only for resolving this issue: https://github.com/junah201/nexify/issues/6
 
     openapi_json["servers"] = [
