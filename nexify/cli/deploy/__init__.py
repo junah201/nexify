@@ -364,7 +364,7 @@ def create_template(
                 current["children"][part] = {
                     "full_path": f"{current['full_path']}/{part}",
                     "children": {},
-                    "spec": spec,
+                    "resource_key": LambdaSpec.get_resource_key(f"{current['full_path']}/{part}"),
                 }
             current = current["children"][part]
 
@@ -375,7 +375,7 @@ def create_template(
                 create_api_resource(resource["children"][child], {"Fn::GetAtt": [api_gateway_key, "RootResourceId"]})
             return
 
-        t["Resources"][resource["spec"].resource_key] = {
+        t["Resources"][resource["resource_key"]] = {
             "Type": "AWS::ApiGateway::Resource",
             "Properties": {
                 "ParentId": parent_id,
@@ -385,7 +385,7 @@ def create_template(
         }
 
         for child in resource["children"]:
-            create_api_resource(resource["children"][child], {"Ref": resource["spec"].resource_key})
+            create_api_resource(resource["children"][child], {"Ref": resource["resource_key"]})
 
     create_api_resource(api_resources)
 

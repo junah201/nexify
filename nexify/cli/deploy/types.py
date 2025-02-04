@@ -96,7 +96,7 @@ class LambdaSpec:
         Actual log group name.
         e.g. /aws/lambda/MyLambdaFunction
         """
-        return f"/aws/lambda/{self.identifier}"
+        return f"/aws/lambda/{self.name}"
 
     @property
     def lambda_function_key(self) -> str:
@@ -138,7 +138,19 @@ class LambdaSpec:
         - The rest is left as is
         - {user_id} -> UserIdVar
         """
-        return "ApiGatewayResource" + self.path.title().replace("/", "").replace("{", "").replace("_", "").replace(
+        return self.get_resource_key(self.path)
+
+    @classmethod
+    def get_resource_key(cls, path: str) -> str:
+        """
+        Resource key for the CloudFormation template.
+        This is the resource that will be attached to the API Gateway.
+        - First letter is capitalized
+        - Slashes are removed and the following letter is capitalized
+        - The rest is left as is
+        - {user_id} -> UserIdVar
+        """
+        return "ApiGatewayResource" + path.title().replace("/", "").replace("{", "").replace("_", "").replace(
             "}", "Var"
         )
 
