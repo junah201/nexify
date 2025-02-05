@@ -454,6 +454,7 @@ def create_template(
 
     # Add method and resource for OpenAPI
     openapi_json = app.openapi()
+    os.makedirs("./.nexify", exist_ok=True)
     with open("./.nexify/openapi.json", "w") as f:
         json.dump(openapi_json, f, indent=2)
     openapi_json_string = json.dumps(openapi_json)
@@ -608,6 +609,7 @@ def create_template(
         "Export": {"Name": f"nexify-{config['service']}-{config['provider']['stage']}-ServiceEndpoint"},
     }
 
+    os.makedirs("./.nexify", exist_ok=True)
     with open("./.nexify/template.json", "w") as f:
         json.dump(t, f, indent=2)
 
