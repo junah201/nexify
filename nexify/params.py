@@ -5,7 +5,7 @@ from typing import Any
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from nexify.openapi.models import Example
-from pydantic import AliasChoices, AliasPath, BaseModel
+from pydantic import AliasChoices, AliasPath
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 from typing_extensions import deprecated

@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeVar
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no covers
     from nexify.responses import HttpResponse
 
 EventType = dict[str, Any]

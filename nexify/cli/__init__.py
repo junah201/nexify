@@ -3,7 +3,7 @@ from typing import Annotated
 
 try:
     import typer
-except ImportError:
+except ImportError:  # pragma: no cover
     message = 'To use the nexify command, please install "nexify[cli]":\n\n\tpip install "nexify[cli]"\n'
     raise RuntimeError(message)
 

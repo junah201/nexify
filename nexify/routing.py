@@ -12,7 +12,6 @@ from nexify.params import Body, Context, Event, Path, Query
 from nexify.responses import HttpResponse, JSONResponse
 from nexify.types import ExceptionHandler, Handler
 from nexify.utils import is_annotated
-from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined, PydanticUndefinedType
 from typing_extensions import Doc
