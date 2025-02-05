@@ -91,12 +91,13 @@ nav:
           - learn/tutorial/first-steps.md
           - learn/tutorial/path-params.md
           - learn/tutorial/query-params.md
+          - learn/tutorial/path-and-query-params-validations.md
+          - learn/tutorial/path-and-query-params-extra-information.md
           - learn/tutorial/body.md
-          - learn/tutorial/event-and-context.md
-          - learn/tutorial/query-params-validations.md
-          - learn/tutorial/path-params-validations.md
           - learn/tutorial/body-validations.md
-          - learn/tutorial/returning-responses.md
+          - learn/tutorial/extra-data-types.md
+          - learn/tutorial/response-model.md
+          - learn/tutorial/response-status-code.md
 
   - Reference (Code API):
       - reference/index.md
