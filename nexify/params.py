@@ -87,10 +87,6 @@ class Param(FieldInfo):
         super().__init__(**use_kwargs)
 
     @classmethod
-    def validate_annotation(cls, annotation: Any) -> None:
-        raise NotImplementedError  # pragma: no cover
-
-    @classmethod
     def get_source(cls, event: dict, context: dict) -> Any:
         raise NotImplementedError  # pragma: no cover
 
@@ -169,12 +165,6 @@ class Path(Param):
         )
 
     @classmethod
-    def validate_annotation(cls, annotation: Any) -> None:
-        assert issubclass(annotation, str | int | float | bool), (
-            "Path parameters must be annotated with str, int, float, or bool"
-        )
-
-    @classmethod
     def get_source(cls, event: dict, context: dict) -> dict:
         return event.get("pathParameters", {}) or {}
 
@@ -250,12 +240,6 @@ class Query(Param):
             openapi_examples=openapi_examples,
             include_in_schema=include_in_schema,
             json_schema_extra=json_schema_extra,
-        )
-
-    @classmethod
-    def validate_annotation(cls, annotation: Any) -> None:
-        assert issubclass(annotation, str | int | float | bool), (
-            "Query parameters must be annotated with str, int, float, or bool"
         )
 
     @classmethod
@@ -344,10 +328,6 @@ class Body(FieldInfo):
 
         super().__init__(**use_kwargs)
 
-    @classmethod
-    def validate_annotation(cls, annotation: Any) -> None:
-        assert issubclass(annotation, (dict | BaseModel)), "Body parameters must be annotated with dict or BaseModel"
-
     def get_source(self, event: dict, context: dict) -> dict:
         return json.loads(event.get("body", "{}")) or {}
 
@@ -367,10 +347,6 @@ class Body(FieldInfo):
 
 class Event(FieldInfo):
     @classmethod
-    def validate_annotation(cls, annotation: Any) -> None:
-        assert issubclass(annotation, dict), "Event parameter must be a dictionary"
-
-    @classmethod
     def get_source(cls, event: dict, context: dict) -> dict:
         return event
 
@@ -382,10 +358,6 @@ class Event(FieldInfo):
 
 
 class Context(FieldInfo):
-    @classmethod
-    def validate_annotation(cls, annotation: Any) -> None:
-        assert issubclass(annotation, dict), "Context parameter must be a dictionary"
-
     @classmethod
     def get_source(cls, event: dict, context: dict) -> dict:
         return context

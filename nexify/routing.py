@@ -222,14 +222,11 @@ class Route:
                 f"Unsupported metadata type {param_type}. Must be Path, Query, Body, Event, or Context"
             )
 
-            assert issubclass(base_type, str | int | float | bool | dict | BaseModel), (
-                "Parameters must be annotated with str, int, float, bool, dict, or pydantic BaseModel"
-            )
+            # TODO: Add validation for base_type
 
             if isinstance(param_type, Path):
                 assert self.path.count("{" + name + "}") == 1, f"Path parameter {name} is not present in {self.path}"
 
-            param_type.validate_annotation(base_type)
             param_type.alias = param_type.alias or name
             param_type.annotation = base_type
             if param_default is not Undefined:
