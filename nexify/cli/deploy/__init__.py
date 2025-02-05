@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import os
 import time
 from pathlib import Path
 from typing import Annotated, Any
@@ -453,7 +454,7 @@ def create_template(
         }
 
     # Add method and resource for OpenAPI
-    openapi_json = app.openapi()
+    openapi_json = copy.deepcopy(app.openapi())
     os.makedirs("./.nexify", exist_ok=True)
     with open("./.nexify/openapi.json", "w") as f:
         json.dump(openapi_json, f, indent=2)
