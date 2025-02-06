@@ -94,7 +94,7 @@ nav:
           - learn/tutorial/path-and-query-params-validations.md
           - learn/tutorial/path-and-query-params-extra-information.md
           - learn/tutorial/body.md
-          - learn/tutorial/body-validations.md
+          - learn/tutorial/body-fields.md
           - learn/tutorial/extra-data-types.md
           - learn/tutorial/response-model.md
           - learn/tutorial/response-status-code.md
