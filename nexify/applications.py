@@ -12,6 +12,7 @@ from nexify.exception_handlers import (
     response_validation_exception_handler,
 )
 from nexify.exceptions import HTTPException, RequestValidationError, ResponseValidationError
+from nexify.middleware import Middleware
 from nexify.openapi.docs import get_swagger_ui_html
 from nexify.openapi.utils import get_openapi
 from nexify.responses import HttpResponse, JSONResponse
@@ -169,11 +170,7 @@ class Nexify:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -304,6 +301,14 @@ class Nexify:
                 """
             ),
         ] = "rest",
+        middlewares: Annotated[
+            list[Middleware] | None,
+            Doc(
+                """
+                A list of middlewares to be applied to this *path operation*.
+                """
+            ),
+        ] = None,
     ):
         self.debug = debug
         self.title = title
@@ -319,10 +324,12 @@ class Nexify:
         self.license_info = license_info
         self.root_path = root_path
         self.deprecated = deprecated
-        self.router = routing.APIRouter()
+
+        self.middlewares = middlewares or []
+        self.router = routing.APIRouter(middlewares=self.middlewares)
 
         self.exception_handlers: dict[
-            int | type[Exception],
+            type[Exception],
             ExceptionHandler,
         ] = exception_handlers or {}
         self.exception_handlers.setdefault(HTTPException, http_exception_handler)

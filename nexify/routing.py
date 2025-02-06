@@ -6,7 +6,13 @@ from re import Pattern
 from typing import Annotated, Any, Literal, get_args
 
 from nexify.convertors import CONVERTOR_TYPES, Convertor
-from nexify.exceptions import RequestValidationError, ResponseValidationError
+from nexify.middleware import (
+    ExceptionMiddleware,
+    Middleware,
+    RenderMiddleware,
+    RequestParsingMiddleware,
+    ResponseValidationMiddleware,
+)
 from nexify.models import ModelField, create_model_field
 from nexify.params import Body, Context, Event, Path, Query
 from nexify.responses import HttpResponse, JSONResponse
@@ -145,15 +151,11 @@ class Route:
                 """
             ),
         ] = None,
-        exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+        middlewares: Annotated[
+            list[Middleware] | None,
             Doc(
                 """
-                A dictionary with handlers for exceptions.
+                A list of middlewares to be applied to this *path operation*.
                 """
             ),
         ] = None,
@@ -182,7 +184,7 @@ class Route:
         self.response_field = self.get_response_field()
         self.response_class = response_class
 
-        self.exception_handlers = exception_handlers or {}
+        self.middlewares = middlewares or []
 
     def get_fields(
         self,
@@ -262,63 +264,20 @@ class Route:
             name=name,
         )
 
-    def process_input(self, event, _context) -> dict[str, Any]:
-        parsed_data = {}
-        errors = []
-
-        for field in self.fields:
-            source = field.field_info.get_source(event, _context)
-            value, errors_ = field.field_info.get_value_from_source(source)
-            if errors_:
-                errors.extend(errors_)
-                continue
-
-            v_, errors_ = field.validate(
-                value,
-                loc=(
-                    field.field_info.__class__.__name__.lower(),
-                    field.name,
-                ),
-            )
-            if errors_:
-                errors.extend(errors_)
-                continue
-
-            parsed_data[field.name] = v_
-
-        if errors:
-            raise RequestValidationError(errors, body=event)
-
-        return parsed_data
-
-    def execute_handler(self, parsed_data: dict[str, Any]):
-        content = self.endpoint(**parsed_data)
-        if self.response_field:
-            content, _errors = self.response_field.validate(content, loc=("response",))  # type: ignore
-
-            if _errors:
-                raise ResponseValidationError(_errors, body=content)
-
-        if isinstance(content, HttpResponse):
-            response = content
-        else:
-            response = self.response_class(content=content, status_code=self.status_code)
-
-        return response.render()
-
-    def handle_request(self, event, _context):
-        parsed_data = self.process_input(event, _context)
-        return self.execute_handler(parsed_data)
-
     def __call__(self, event, _context):
-        try:
-            return self.handle_request(event, _context)
-        except Exception as e:
-            for exception, handler in self.exception_handlers.items():
-                if isinstance(e, exception):
-                    res = handler(event, _context, e)
-                    return res.render()
-            raise e
+        def call_next(event, _context, index=0, **kwargs):
+            if index < len(self.middlewares):
+                return self.middlewares[index](
+                    route=self,
+                    event=event,
+                    context=_context,
+                    call_next=lambda e, c, **kwargs: call_next(e, c, index + 1, **kwargs),
+                    **kwargs,
+                )
+            _parsed_data = kwargs.pop("_parsed_data", {})
+            return self.endpoint(**_parsed_data)
+
+        return call_next(event, _context)
 
 
 class APIRouter:
@@ -337,10 +296,19 @@ class APIRouter:
                 """
             ),
         ] = None,
+        middlewares: Annotated[
+            list[Middleware] | None,
+            Doc(
+                """
+                A list of middlewares to be applied to this *path operation*.
+                """
+            ),
+        ] = None,
     ):
         self.prefix = prefix
         self.tags = tags or []
         self.routes: list[Route] = []
+        self.middlewares = middlewares or []
 
     def route(
         self,
@@ -475,11 +443,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -525,12 +489,17 @@ class APIRouter:
         response_class: type[HttpResponse] = JSONResponse,
         name: str | None = None,
         openapi_extra: dict[str, Any] | None = None,
-        exception_handlers: dict[
-            int | type[Exception],
-            ExceptionHandler,
-        ]
-        | None = None,
+        exception_handlers: dict[type[Exception], ExceptionHandler] | None = None,
     ) -> Route:
+        middlewares = (
+            [
+                RenderMiddleware(),
+                ExceptionMiddleware(exception_handlers or {}),
+                ResponseValidationMiddleware(),
+            ]
+            + self.middlewares
+            + [RequestParsingMiddleware()]
+        )
         return Route(
             path=self.prefix + path,
             endpoint=endpoint,
@@ -545,7 +514,7 @@ class APIRouter:
             response_class=response_class,
             name=name,
             openapi_extra=openapi_extra,
-            exception_handlers=exception_handlers,
+            middlewares=middlewares,
         )
 
     def get(
@@ -671,11 +640,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -822,11 +787,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -972,11 +933,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -1122,11 +1079,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -1272,11 +1225,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
@@ -1422,11 +1371,7 @@ class APIRouter:
             ),
         ] = None,
         exception_handlers: Annotated[
-            dict[
-                int | type[Exception],
-                ExceptionHandler,
-            ]
-            | None,
+            dict[type[Exception], ExceptionHandler] | None,
             Doc(
                 """
                 A dictionary with handlers for exceptions.
