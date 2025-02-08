@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import (
@@ -107,9 +108,15 @@ class ModelField:
 def create_model_field(
     field_info: FieldInfo,
     annotation: type[Any],
-    name: str = "validation",
+    name: str,
+    default: Any = inspect.Parameter.empty,
 ) -> ModelField:
     field_info.annotation = annotation
+    if default is not inspect.Parameter.empty:
+        assert field_info.is_required(), "Cannot set default value for a field that already has a default value set"
+        field_info.default = default
+    if field_info.alias is None:
+        field_info.alias = name
     return ModelField(
         field_info=field_info,
         name=name,

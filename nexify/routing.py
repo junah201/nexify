@@ -1,23 +1,22 @@
-import inspect
 import re
-import warnings
 from collections.abc import Callable, Sequence
 from re import Pattern
-from typing import Annotated, Any, Literal, get_args
+from typing import Annotated, Any, Literal
 
+from nexify import params
 from nexify.convertors import CONVERTOR_TYPES, Convertor
+from nexify.dependencies.utils import get_dependant, get_sub_dependant, get_typed_return_annotation
 from nexify.middleware import (
     ExceptionMiddleware,
     Middleware,
     RenderMiddleware,
     RequestParsingMiddleware,
     ResponseValidationMiddleware,
+    ServerErrorMiddleware,
 )
-from nexify.models import ModelField, create_model_field
-from nexify.params import Body, Context, Event, Path, Query
+from nexify.models import create_model_field
 from nexify.responses import HttpResponse, JSONResponse
 from nexify.types import ExceptionHandler, Handler
-from nexify.utils import is_annotated
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined, PydanticUndefinedType
 from typing_extensions import Doc
@@ -59,6 +58,14 @@ class Route:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -165,6 +172,7 @@ class Route:
         self.endpoint = endpoint
         self.methods: set[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = set(methods)
         self.status_code = status_code
+        self.dependencies = list(dependencies or [])
         self.tags = tags or []
         self.summary = summary
         self.description = description
@@ -176,93 +184,34 @@ class Route:
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
         self.unique_id = self.operation_id or generate_unique_id(self)
 
-        self.body_fields, self.path_fields, self.query_fields, self.event_fields, self.context_fields = (
-            self.get_fields()
+        self.dependant = get_dependant(
+            path=self.path_format,
+            call=self.endpoint,
         )
-        self.fields = self.body_fields + self.path_fields + self.query_fields + self.event_fields + self.context_fields
+        for depends in reversed(self.dependencies):
+            self.dependant.dependencies.insert(
+                0,
+                get_sub_dependant(
+                    depends=depends,
+                    dependency=depends.dependency,
+                    path=self.path_format,
+                ),
+            )
 
-        self.response_field = self.get_response_field()
+        return_annotation = get_typed_return_annotation(self.endpoint)
+        if return_annotation is not None:
+            _name = f"{self.endpoint.__name__}_response"
+            self.response_field = create_model_field(
+                FieldInfo(
+                    name=_name,
+                ),
+                annotation=return_annotation,
+                name=_name,
+            )
+        else:
+            self.response_field = None
         self.response_class = response_class
-
         self.middlewares = middlewares or []
-
-    def get_fields(
-        self,
-    ) -> tuple[list[ModelField], list[ModelField], list[ModelField], list[ModelField], list[ModelField]]:
-        body_fields: list[ModelField] = []
-        path_fields: list[ModelField] = []
-        query_fields: list[ModelField] = []
-        event_fields: list[ModelField] = []
-        context_fields: list[ModelField] = []
-
-        signature = inspect.signature(self.endpoint)
-
-        for name, param in signature.parameters.items():
-            annotation = param.annotation
-
-            if not is_annotated(annotation):
-                warnings.warn(
-                    f"Parameter {name} is not annotated. Skipping parsing.",
-                    stacklevel=2,
-                )
-                continue
-
-            base_type, param_type, *_ = get_args(annotation)
-            param_default = param.default if param.default != param.empty else Undefined
-            default_value = (
-                param.default if param.default != param.empty else param_type.get_default(call_default_factory=True)
-            )
-            assert default_value is Undefined or isinstance(default_value, base_type), (
-                f"Default value {default_value} is not an instance of {base_type}"
-            )
-
-            if isinstance(param_type, Event | Context | Path):
-                assert default_value is Undefined, f"{param_type} parameter must do not have default values"
-
-            assert isinstance(param_type, Path | Query | Body | Event | Context), (
-                f"Unsupported metadata type {param_type}. Must be Path, Query, Body, Event, or Context"
-            )
-
-            # TODO: Add validation for base_type
-
-            if isinstance(param_type, Path):
-                assert self.path.count("{" + name + "}") == 1, f"Path parameter {name} is not present in {self.path}"
-
-            param_type.alias = param_type.alias or name
-            param_type.annotation = base_type
-            if param_default is not Undefined:
-                assert param_type.get_default(call_default_factory=True) == Undefined, "Default value is already set"
-                param_type.default = default_value
-
-            field = ModelField(name=name, field_info=param_type, mode="validation")
-
-            if isinstance(param_type, Body):
-                body_fields.append(field)
-            elif isinstance(param_type, Path):
-                path_fields.append(field)
-            elif isinstance(param_type, Query):
-                query_fields.append(field)
-            elif isinstance(param_type, Event):
-                event_fields.append(field)
-            elif isinstance(param_type, Context):
-                context_fields.append(field)
-
-        return body_fields, path_fields, query_fields, event_fields, context_fields
-
-    def get_response_field(self):
-        response_model = self.endpoint.__annotations__.get("return", Undefined)
-
-        if response_model is Undefined:
-            return None
-
-        name = f"{self.endpoint.__name__}_response"
-        return create_model_field(
-            FieldInfo(
-                name=name,
-            ),
-            annotation=response_model,
-            name=name,
-        )
 
     def __call__(self, event, _context):
         def call_next(event, _context, index=0, **kwargs):
@@ -350,6 +299,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -458,6 +415,7 @@ class APIRouter:
                 methods=methods,
                 status_code=status_code,
                 tags=tags,
+                dependencies=dependencies,
                 summary=summary,
                 description=description,
                 response_description=response_description,
@@ -481,6 +439,7 @@ class APIRouter:
         methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = ["GET"],
         status_code: int | None = None,
         tags: list[str] | None = None,
+        dependencies: Sequence[params.Depends] | None = None,
         summary: str | None = None,
         description: str | None = None,
         response_description: str = "Successful Response",
@@ -494,6 +453,7 @@ class APIRouter:
         middlewares = (
             [
                 RenderMiddleware(),
+                ServerErrorMiddleware(),
                 ExceptionMiddleware(exception_handlers or {}),
                 ResponseValidationMiddleware(),
             ]
@@ -506,6 +466,7 @@ class APIRouter:
             methods=methods,
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,
@@ -547,6 +508,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -653,6 +622,7 @@ class APIRouter:
             methods=["GET"],
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,
@@ -694,6 +664,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -800,6 +778,7 @@ class APIRouter:
             methods=["PUT"],
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,
@@ -840,6 +819,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -946,6 +933,7 @@ class APIRouter:
             methods=["POST"],
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,
@@ -986,6 +974,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -1092,6 +1088,7 @@ class APIRouter:
             methods=["DELETE"],
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,
@@ -1132,6 +1129,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -1238,6 +1243,7 @@ class APIRouter:
             methods=["OPTIONS"],
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,
@@ -1278,6 +1284,14 @@ class APIRouter:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -1384,6 +1398,7 @@ class APIRouter:
             methods=["HEAD"],
             status_code=status_code,
             tags=tags,
+            dependencies=dependencies,
             summary=summary,
             description=description,
             response_description=response_description,

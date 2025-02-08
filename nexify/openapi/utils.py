@@ -1,7 +1,6 @@
 import inspect
 import warnings
 from collections.abc import Sequence
-from itertools import chain
 from typing import Any, Literal, cast
 
 from nexify.encoders import jsonable_encoder
@@ -54,8 +53,18 @@ def get_openapi(
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
 
-    all_fields = list(chain.from_iterable(route.fields + [route.response_field] for route in list(routes or [])))
-    all_fields = [field for field in all_fields if field]
+    all_fields = []
+    for route in list(routes or []):
+        _all_fields = (
+            route.dependant.path_params
+            + route.dependant.query_params
+            + route.dependant.body_params
+            + route.dependant.event_params
+            + route.dependant.context_params
+        )
+        if route.response_field:
+            _all_fields.append(route.response_field)
+        all_fields.extend(_all_fields)
 
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
@@ -114,7 +123,7 @@ def get_openapi_path(
             operation["parameters"] = list(all_parameters.values())
         if method in METHODS_WITH_BODY:
             request_body_oai = get_openapi_operation_request_body(
-                body_fields=route.body_fields,
+                body_fields=route.dependant.body_params,
                 field_mapping=field_mapping,
             )
             if request_body_oai:
@@ -160,11 +169,9 @@ def _get_openapi_operation_parameters(
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
 ) -> list[dict[str, Any]]:
     parameters = []
-    path_fields = route.path_fields
-    query_fields = route.query_fields
     parameter_groups = [
-        (ParamTypes.path, path_fields),
-        (ParamTypes.query, query_fields),
+        (ParamTypes.path, route.dependant.path_params),
+        (ParamTypes.query, route.dependant.query_params),
     ]
     for param_type, param_group in parameter_groups:
         for param in param_group:

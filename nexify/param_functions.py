@@ -843,3 +843,34 @@ def Event():
 
 def Context():
     return params.Context()
+
+
+def Depends(
+    dependency: Annotated[
+        Callable[..., Any] | None,
+        Doc(
+            """
+                A "dependable" callable (like a function).
+
+                Don't call it directly, FastAPI will call it for you, just pass the object
+                directly.
+                """
+        ),
+    ],
+    *,
+    use_cache: Annotated[
+        bool,
+        Doc(
+            """
+            By default, after a dependency is called the first time in a request, if
+            the dependency is declared again for the rest of the request (for example
+            if the dependency is needed by several dependencies), the value will be
+            re-used for the rest of the request.
+
+            Set `use_cache` to `False` to disable this behavior and ensure the
+            dependency is called again (if declared more than once) in the same request.
+            """
+        ),
+    ] = True,
+) -> Any:
+    return params.Depends(dependency=dependency, use_cache=use_cache)
