@@ -5,11 +5,6 @@ from nexify import Depends, Nexify, Query
 from nexify.encoders import jsonable_encoder
 
 
-@pytest.fixture
-def app():
-    return Nexify()
-
-
 def test_depends(app):
     def common_parameters(
         q: Annotated[str | None, Query()] = None,

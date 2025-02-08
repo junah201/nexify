@@ -1,15 +1,13 @@
 import json
 from typing import Annotated
 
-from nexify import Nexify, status
+from nexify import status
 from nexify.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
 
-def test_no_response_field():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_no_response_field(app):
     @app.get("/no-response-field-with-json-response")
     def no_response_field_with_json_response():
         return {
@@ -51,9 +49,7 @@ def test_no_response_field():
     }
 
 
-def test_json_response_class():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_json_response_class(app):
     @app.get("/json-response")
     def json_response():
         return {
@@ -102,9 +98,7 @@ def test_json_response_class():
     }
 
 
-def test_plain_text_response_class():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_plain_text_response_class(app):
     @app.get("/text-response", response_class=PlainTextResponse)
     def text_response():
         return "Hello, World!"
@@ -117,9 +111,7 @@ def test_plain_text_response_class():
     }
 
 
-def test_plain_text_response_class_with_response_field():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_plain_text_response_class_with_response_field(app):
     @app.get("/text-response-with-invalid-response-field", response_class=PlainTextResponse)
     def text_response_with_invalid_int_response_field() -> int:
         return {
@@ -153,9 +145,7 @@ def test_plain_text_response_class_with_response_field():
     }
 
 
-def test_html_response():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_html_response(app):
     @app.get("/html-response", response_class=HTMLResponse)
     def html_response():
         return "<html><body><h1>Hello, World!</h1></body></html>"
@@ -168,9 +158,7 @@ def test_html_response():
     }
 
 
-def test_redirect_response():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_redirect_response(app):
     @app.get("/redirect-response", response_class=RedirectResponse)
     def redirect_response():
         return RedirectResponse(url="https://google.com")
@@ -182,9 +170,7 @@ def test_redirect_response():
     }
 
 
-def test_response_with_status_code():
-    app = Nexify(title="Nexify", version="1.0.0", description="A simple API for Testing")
-
+def test_response_with_status_code(app):
     @app.post("/response-with-status-code", status_code=status.HTTP_201_CREATED)
     def response_with_status_code():
         return {"status": "created"}

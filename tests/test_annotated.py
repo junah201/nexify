@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import pytest
-from nexify import Context, Event, Nexify, Path, Query
+from nexify import Context, Event, Path, Query
 
 
 @pytest.mark.parametrize(
@@ -12,9 +12,7 @@ from nexify import Context, Event, Nexify, Path, Query
         ({"queryStringParameters": {"foo": "qux"}}, "qux"),
     ],
 )
-def test_query(event, expected):
-    app = Nexify()
-
+def test_query(app, event, expected):
     @app.get("/query")
     def query(foo: Annotated[str, Query()]):
         assert foo == expected
@@ -30,9 +28,7 @@ def test_query(event, expected):
         ({"pathParameters": {"foo": "qux"}}, "qux"),
     ],
 )
-def test_path(event, expected):
-    app = Nexify()
-
+def test_path(app, event, expected):
     @app.get("/path/{foo}")
     def path(foo: Annotated[str, Path()]):
         assert foo == expected
@@ -48,9 +44,7 @@ def test_path(event, expected):
         ({"foo": "qux"}),
     ],
 )
-def test_event(given_event):
-    app = Nexify()
-
+def test_event(app, given_event):
     @app.get("/event")
     def event(foo: Annotated[dict, Event()]):
         assert foo == given_event
@@ -66,9 +60,7 @@ def test_event(given_event):
         ({"foo": "qux"}),
     ],
 )
-def test_context(given_context):
-    app = Nexify()
-
+def test_context(app, given_context):
     @app.get("/context")
     def context(foo: Annotated[dict, Context()]):
         assert foo == given_context
@@ -76,9 +68,7 @@ def test_context(given_context):
     context({}, given_context)
 
 
-def test_no_annotated_parameter():
-    app = Nexify()
-
+def test_no_annotated_parameter(app):
     with pytest.warns(UserWarning, match=r"Parameter .* is not annotated\. Skipping parsing\."):
 
         @app.get("/no-annotated-parameter")

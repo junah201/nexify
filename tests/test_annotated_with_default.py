@@ -2,7 +2,7 @@ import json
 from typing import Annotated
 
 import pytest
-from nexify import Body, Context, Event, Nexify, Path, Query
+from nexify import Body, Context, Event, Path, Query
 from pydantic import BaseModel
 
 
@@ -14,9 +14,7 @@ from pydantic import BaseModel
         ("qux"),
     ],
 )
-def test_query_with_default(default):
-    app = Nexify()
-
+def test_query_with_default(app, default):
     @app.get("/query_with_default")
     def query_with_default(foo: Annotated[str, Query()] = default):
         assert foo == default
@@ -34,9 +32,7 @@ def test_query_with_default(default):
     query_with_query_default_factory({}, {})
 
 
-def test_query_with_no_default():
-    app = Nexify()
-
+def test_query_with_no_default(app):
     @app.get("/query_with_no_default")
     def query_with_no_default(foo: Annotated[str, Query()]): ...
 
@@ -56,11 +52,7 @@ def test_query_with_no_default():
         ("qux"),
     ],
 )
-def test_path_with_default(
-    default,
-):
-    app = Nexify()
-
+def test_path_with_default(app, default):
     with pytest.raises(AssertionError):
 
         @app.get("/path_with_default")
@@ -77,9 +69,7 @@ def test_path_with_default(
         def path_with_path_default_factory(foo: Annotated[str, Path(default_factory=lambda: default)]): ...
 
 
-def test_path_with_no_default():
-    app = Nexify()
-
+def test_path_with_no_default(app):
     with pytest.raises(AssertionError):
 
         @app.get("/path_with_no_default")
@@ -89,9 +79,7 @@ def test_path_with_no_default():
     def path_with_no_default(foo: Annotated[str, Path()]): ...
 
 
-def test_body_with_default():
-    app = Nexify()
-
+def test_body_with_default(app):
     @app.get("/body_with_default")
     def body_with_default(foo: Annotated[dict, Body()] = {"foo": "bar"}):
         assert foo == {"foo": "bar"}
@@ -115,9 +103,7 @@ def test_body_with_default():
         ({"foo": "bar"}),
     ],
 )
-def test_body_with_no_default(input):
-    app = Nexify()
-
+def test_body_with_no_default(app, input):
     class Foo(BaseModel):
         foo: str
 
@@ -150,18 +136,14 @@ def test_body_with_no_default(input):
     body_with_no_default_pydantic(event, {})
 
 
-def test_event_with_default():
-    app = Nexify()
-
+def test_event_with_default(app):
     with pytest.raises(AssertionError):
 
         @app.get("/event_with_default")
         def event_with_default(foo: Annotated[dict, Event()] = {"foo": "bar"}): ...
 
 
-def test_event_with_no_default():
-    app = Nexify()
-
+def test_event_with_no_default(app):
     @app.get("/event_with_no_default")
     def event_with_no_default(event: Annotated[dict, Event()]):
         assert event == {"foo": "bar"}
@@ -169,18 +151,14 @@ def test_event_with_no_default():
     event_with_no_default({"foo": "bar"}, {})
 
 
-def test_context_with_default():
-    app = Nexify()
-
+def test_context_with_default(app):
     with pytest.raises(AssertionError):
 
         @app.get("/context_with_default")
         def context_with_default(context: Annotated[dict, Context()] = {"foo": "bar"}): ...
 
 
-def test_context_with_no_default():
-    app = Nexify()
-
+def test_context_with_no_default(app):
     @app.get("/context_with_no_default")
     def context_with_no_default(context: Annotated[dict, Context()]):
         assert context == {"foo": "bar"}

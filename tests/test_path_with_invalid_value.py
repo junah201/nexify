@@ -2,7 +2,7 @@ import json
 from typing import Annotated
 
 import pytest
-from nexify import Nexify, Path
+from nexify import Path
 
 
 @pytest.mark.parametrize(
@@ -12,9 +12,7 @@ from nexify import Nexify, Path
         ("0"),
     ],
 )
-def test_invalid_path_with_gt(input):
-    app = Nexify()
-
+def test_invalid_path_with_gt(app, input):
     @app.get("/path_with_invalid_input/{foo}")
     def path_with_invalid_input(foo: Annotated[int, Path(gt=10)]): ...
 
@@ -45,9 +43,7 @@ def test_invalid_path_with_gt(input):
         ("fdsfsda"),
     ],
 )
-def test_invalid_path_with_max_length(input):
-    app = Nexify()
-
+def test_invalid_path_with_max_length(app, input):
     @app.get("/path_with_invalid_input/{foo}")
     def path_with_invalid_input(foo: Annotated[str, Path(max_length=3)]): ...
 
@@ -75,9 +71,7 @@ def test_invalid_path_with_max_length(input):
     "input",
     [("1234"), ("fdsfsda")],
 )
-def test_invalid_path_with_min_length(input):
-    app = Nexify()
-
+def test_invalid_path_with_min_length(app, input):
     @app.get("/path_with_invalid_input/{foo}")
     def path_with_invalid_input(foo: Annotated[str, Path(min_length=10)]): ...
 
@@ -101,9 +95,7 @@ def test_invalid_path_with_min_length(input):
     }
 
 
-def test_no_path():
-    app = Nexify()
-
+def test_no_path(app):
     with pytest.raises(AssertionError):
 
         @app.get("/no_path")
@@ -133,9 +125,7 @@ def test_no_path():
     }
 
 
-def test_duplicated_path():
-    app = Nexify()
-
+def test_duplicated_path(app):
     with pytest.raises(ValueError):
 
         @app.get("/duplicated_path/{foo}/{foo}")
@@ -149,9 +139,7 @@ def test_duplicated_path():
         ("fdsfsda"),
     ],
 )
-def test_invalid_path(input):
-    app = Nexify()
-
+def test_invalid_path(app, input):
     @app.get("/items/{item_id}")
     def read_item(item_id: Annotated[int, Path()]): ...
 

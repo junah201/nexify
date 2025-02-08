@@ -1,13 +1,11 @@
 from typing import Annotated
 
 import pytest
-from nexify import Body, Nexify, Query
+from nexify import Body, Query
 from pydantic import BaseModel
 
 
-def test_query_with_multiple_default():
-    app = Nexify()
-
+def test_query_with_multiple_default(app):
     with pytest.raises((AssertionError, TypeError)):
 
         @app.get("/query_with_multiple_default")
@@ -46,9 +44,7 @@ def test_query_with_multiple_default():
         ): ...
 
 
-def test_body_with_multiple_default():
-    app = Nexify()
-
+def test_body_with_multiple_default(app):
     class SampleModel(BaseModel):
         name: str
 

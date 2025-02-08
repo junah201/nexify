@@ -1,6 +1,5 @@
 import time
 
-import pytest
 from nexify.cli.deploy import analyze_app, create_template
 
 mock_settings = {
@@ -35,12 +34,7 @@ mock_settings = {
 }
 
 
-def test_deploy_create_template():
-    try:
-        from nexify.templates.basic.main import app as basic_app
-    except ImportError:
-        pytest.skip("Basic template not found")
-
+def test_deploy_create_template(basic_app):
     timestamp = int(time.time() * 1000)
     zip_s3_key = f"{timestamp}/{mock_settings['service']}.zip"
     lambda_specs = analyze_app(basic_app, config=mock_settings)

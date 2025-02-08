@@ -2,12 +2,10 @@ import json
 from typing import Annotated
 
 import pytest
-from nexify import Nexify, Path
+from nexify import Path
 
 
-def test_no_path():
-    app = Nexify()
-
+def test_no_path(app):
     with pytest.raises(AssertionError):
 
         @app.get("/no_path")
@@ -35,9 +33,7 @@ def test_no_path():
     }
 
 
-def test_duplicated_path():
-    app = Nexify()
-
+def test_duplicated_path(app):
     with pytest.raises(ValueError):
 
         @app.get("/duplicated_path/{foo}/{foo}")
