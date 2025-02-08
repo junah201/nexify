@@ -1,4 +1,5 @@
 import json
+
 from nexify import Nexify
 from nexify.responses import JSONResponse
 

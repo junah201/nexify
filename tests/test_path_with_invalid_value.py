@@ -8,8 +8,8 @@ from nexify import Nexify, Path
 @pytest.mark.parametrize(
     "input",
     [
-        (-23),
-        (1.0),
+        ("-23"),
+        ("0"),
     ],
 )
 def test_invalid_path_with_gt(input):
@@ -142,13 +142,20 @@ def test_duplicated_path():
         def duplicated_path(foo: Annotated[int, Path()]): ...
 
 
-def test_invalid_path():
+@pytest.mark.parametrize(
+    "input",
+    [
+        ("not_an_int"),
+        ("fdsfsda"),
+    ],
+)
+def test_invalid_path(input):
     app = Nexify()
 
     @app.get("/items/{item_id}")
     def read_item(item_id: Annotated[int, Path()]): ...
 
-    assert read_item({"pathParameters": {"item_id": "not_an_int"}}, {}) == {
+    assert read_item({"pathParameters": {"item_id": input}}, {}) == {
         "statusCode": 422,
         "headers": {"content-type": "application/json; charset=utf-8"},
         "body": json.dumps(
@@ -158,7 +165,7 @@ def test_invalid_path():
                         "type": "int_parsing",
                         "loc": ["path", "item_id"],
                         "msg": "Input should be a valid integer, unable to parse string as an integer",
-                        "input": "not_an_int",
+                        "input": input,
                     }
                 ]
             }

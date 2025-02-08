@@ -139,7 +139,6 @@ def test_plain_text_response_class_with_response_field():
         )
 
     res = text_response_with_invalid_int_response_field({}, {})
-    print(res)
     assert res == {
         "statusCode": 500,
         "headers": {"content-type": "application/json; charset=utf-8"},
