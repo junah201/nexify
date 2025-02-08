@@ -1,11 +1,11 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import (
     Annotated,
     Any,
     Literal,
 )
 
-from nexify import routing
+from nexify import params, routing
 from nexify.exception_handlers import (
     http_exception_handler,
     request_validation_exception_handler,
@@ -44,6 +44,14 @@ class Nexify:
                 """
             ),
         ] = "Nexify API",
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
+                """
+            ),
+        ] = None,
         summary: Annotated[
             str | None,
             Doc(
@@ -325,6 +333,7 @@ class Nexify:
         self.root_path = root_path
         self.deprecated = deprecated
 
+        self.dependencies = list(dependencies or [])
         self.middlewares = middlewares or []
         self.router = routing.APIRouter(middlewares=self.middlewares)
 
@@ -366,6 +375,14 @@ class Nexify:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -466,6 +483,7 @@ class Nexify:
             path=path,
             status_code=status_code,
             tags=tags,
+            dependencies=self.dependencies + list(dependencies or []),
             summary=summary,
             description=description,
             response_description=response_description,
@@ -507,6 +525,14 @@ class Nexify:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -607,6 +633,7 @@ class Nexify:
             path=path,
             status_code=status_code,
             tags=tags,
+            dependencies=self.dependencies + list(dependencies or []),
             summary=summary,
             description=description,
             response_description=response_description,
@@ -648,6 +675,14 @@ class Nexify:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -748,6 +783,7 @@ class Nexify:
             path=path,
             status_code=status_code,
             tags=tags,
+            dependencies=self.dependencies + list(dependencies or []),
             summary=summary,
             description=description,
             response_description=response_description,
@@ -789,6 +825,14 @@ class Nexify:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -889,6 +933,7 @@ class Nexify:
             path=path,
             status_code=status_code,
             tags=tags,
+            dependencies=self.dependencies + list(dependencies or []),
             summary=summary,
             description=description,
             response_description=response_description,
@@ -930,6 +975,14 @@ class Nexify:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -1030,6 +1083,7 @@ class Nexify:
             path=path,
             status_code=status_code,
             tags=tags,
+            dependencies=self.dependencies + list(dependencies or []),
             summary=summary,
             description=description,
             response_description=response_description,
@@ -1071,6 +1125,14 @@ class Nexify:
                 A list of tags to be applied to the *path operation*.
 
                 It will be added to the generated OpenAPI.
+                """
+            ),
+        ] = None,
+        dependencies: Annotated[
+            Sequence[params.Depends] | None,
+            Doc(
+                """
+                A list of dependencies (using `Depends()`) to be applied
                 """
             ),
         ] = None,
@@ -1171,6 +1233,7 @@ class Nexify:
             path=path,
             status_code=status_code,
             tags=tags,
+            dependencies=self.dependencies + list(dependencies or []),
             summary=summary,
             description=description,
             response_description=response_description,
