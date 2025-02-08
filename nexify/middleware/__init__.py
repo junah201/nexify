@@ -90,6 +90,8 @@ def solve_sub_dependency(dependant: Dependant, event, context, exit_stack: ExitS
     for field in (
         dependant.path_params
         + dependant.query_params
+        + dependant.header_params
+        + dependant.cookie_params
         + dependant.body_params
         + dependant.event_params
         + dependant.context_params
@@ -128,6 +130,8 @@ def solve_dependencies(dependant: Dependant, event, context, exit_stack: ExitSta
     for field in (
         dependant.path_params
         + dependant.query_params
+        + dependant.header_params
+        + dependant.cookie_params
         + dependant.body_params
         + dependant.event_params
         + dependant.context_params

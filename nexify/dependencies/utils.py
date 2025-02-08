@@ -160,6 +160,10 @@ def get_dependant(
             dependant.query_params.append(param_details.field)
         elif isinstance(param_details.field.field_info, params.Body):
             dependant.body_params.append(param_details.field)
+        elif isinstance(param_details.field.field_info, params.Header):
+            dependant.header_params.append(param_details.field)
+        elif isinstance(param_details.field.field_info, params.Cookie):
+            dependant.cookie_params.append(param_details.field)
         elif isinstance(param_details.field.field_info, params.Event):
             assert param_details.field.field_info.is_required(), "Event parameters cannot have defaults"
             dependant.event_params.append(param_details.field)

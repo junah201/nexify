@@ -10,6 +10,8 @@ class Dependant:
     path_params: list[ModelField] = field(default_factory=list)
     query_params: list[ModelField] = field(default_factory=list)
     body_params: list[ModelField] = field(default_factory=list)
+    header_params: list[ModelField] = field(default_factory=list)
+    cookie_params: list[ModelField] = field(default_factory=list)
     event_params: list[ModelField] = field(default_factory=list)
     context_params: list[ModelField] = field(default_factory=list)
     dependencies: list["Dependant"] = field(default_factory=list)
