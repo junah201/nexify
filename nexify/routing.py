@@ -16,7 +16,7 @@ from nexify.middleware import (
 )
 from nexify.models import create_model_field
 from nexify.responses import HttpResponse, JSONResponse
-from nexify.types import ExceptionHandler, Handler
+from nexify.types import ExceptionHandler, Handler, MiddlewareType
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined, PydanticUndefinedType
 from typing_extensions import Doc
@@ -220,8 +220,7 @@ class Route:
                     route=self,
                     event=event,
                     context=_context,
-                    call_next=lambda e, c, **kwargs: call_next(e, c, index + 1, **kwargs),
-                    **kwargs,
+                    call_next=lambda e, c, **new_kwargs: call_next(e, c, index + 1, **kwargs, **new_kwargs),
                 )
             _parsed_data = kwargs.pop("_parsed_data", {})
             return self.endpoint(**_parsed_data)
@@ -1408,6 +1407,9 @@ class APIRouter:
             openapi_extra=openapi_extra,
             exception_handlers=exception_handlers,
         )
+
+    def add_middleware(self, middleware: MiddlewareType):
+        self.middlewares.insert(0, middleware)
 
 
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'

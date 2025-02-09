@@ -7,7 +7,8 @@ from nexify import Nexify
 
 @pytest.fixture(scope="function")
 def app():
-    return Nexify()
+    app_instance = Nexify()
+    return app_instance
 
 
 @pytest.fixture(scope="function")
