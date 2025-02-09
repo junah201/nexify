@@ -1,5 +1,5 @@
-from uuid import UUID
 from typing import Annotated
+from uuid import UUID
 
 import pytest
 from nexify import Path, status

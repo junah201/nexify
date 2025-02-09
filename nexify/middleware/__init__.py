@@ -16,13 +16,13 @@ from nexify.types import ContextType, EventType, ExceptionHandler
 
 class Middleware:
     @abstractmethod
-    def __call__(self, route: "Route", event: EventType, context: ContextType, call_next, **kwargs): ...
+    def __call__(self, route: "Route", event: EventType, context: ContextType, call_next): ...
 
 
 class ServerErrorMiddleware(Middleware):
-    def __call__(self, route, event, context, call_next, **kwargs):
+    def __call__(self, route, event, context, call_next):
         try:
-            return call_next(event, context, **kwargs)
+            return call_next(event, context)
         except Exception as e:
             logging.exception(e)  # TODO: Add more detailed logging
             return HttpResponse(status_code=500, content={"detail": "Internal Server Error"})
@@ -35,9 +35,9 @@ class ExceptionMiddleware(Middleware):
     ):
         self.exception_handlers = exception_handlers
 
-    def __call__(self, route, event, context, call_next, **kwargs):
+    def __call__(self, route, event, context, call_next):
         try:
-            return call_next(event, context, **kwargs)
+            return call_next(event, context)
         except Exception as e:
             for exception_type, handler in self.exception_handlers.items():
                 if isinstance(e, exception_type):
@@ -46,8 +46,8 @@ class ExceptionMiddleware(Middleware):
 
 
 class RenderMiddleware(Middleware):
-    def __call__(self, route, event, context, call_next, **kwargs):
-        content = call_next(event, context, **kwargs)
+    def __call__(self, route, event, context, call_next):
+        content = call_next(event, context)
 
         if isinstance(content, HttpResponse):
             response = content
@@ -58,8 +58,8 @@ class RenderMiddleware(Middleware):
 
 
 class ResponseValidationMiddleware(Middleware):
-    def __call__(self, route, event, context, call_next, **kwargs):
-        content = call_next(event, context, **kwargs)
+    def __call__(self, route, event, context, call_next):
+        content = call_next(event, context)
         if route.response_field is None:
             return content
 
@@ -167,7 +167,7 @@ def solve_dependencies(dependant: Dependant, event, context, exit_stack: ExitSta
 
 
 class RequestParsingMiddleware(Middleware):
-    def __call__(self, route, event, context, call_next, **kwargs):
+    def __call__(self, route, event, context, call_next):
         with ExitStack() as exit_stack:
             parsed_data = solve_dependencies(route.dependant, event, context, exit_stack=exit_stack)
-            return call_next(event, context, _parsed_data=parsed_data, **kwargs)
+            return call_next(event, context, _parsed_data=parsed_data)

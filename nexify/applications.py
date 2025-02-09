@@ -16,7 +16,7 @@ from nexify.middleware import Middleware
 from nexify.openapi.docs import get_swagger_ui_html
 from nexify.openapi.utils import get_openapi
 from nexify.responses import HttpResponse, JSONResponse
-from nexify.types import ExceptionHandler, Handler
+from nexify.types import ExceptionHandler, Handler, MiddlewareType
 from typing_extensions import Doc
 
 
@@ -1274,3 +1274,23 @@ class Nexify:
             openapi_url="openapi.json",
             title=self.title,
         )
+
+    def middleware(self, func: MiddlewareType) -> MiddlewareType:
+        self.middlewares.insert(0, func)
+        self.router.add_middleware(func)
+
+        return func
+
+    def add_middleware(self, middleware: MiddlewareType) -> None:
+        self.middlewares.insert(0, middleware)
+        self.router.add_middleware(middleware)
+
+    def exception_handler(self, exception_class: type[Exception]):
+        def decorator(func: ExceptionHandler) -> ExceptionHandler:
+            self.exception_handlers[exception_class] = func
+            return func
+
+        return decorator
+
+    def add_exception_handler(self, exception_class: type[Exception], handler: ExceptionHandler) -> None:
+        self.exception_handlers[exception_class] = handler
