@@ -336,7 +336,7 @@ class Header(Param):
         default = self.get_default(call_default_factory=True)
         default = default if default is not Undefined else default_value
 
-        value = source.get(self.alias, default)
+        value = source.get(self.alias.lower().replace("_", "-"), default)
         if value is Undefined:
             return None, [{"loc": ["header", self.alias], "msg": "Field required", "type": "missing", "input": None}]
         return value, None
@@ -416,7 +416,7 @@ class Cookie(Param):
         default = self.get_default(call_default_factory=True)
         default = default if default is not Undefined else default_value
 
-        value = source.get(self.alias, default)
+        value = source.get(self.alias.replace("_", "-"), default)
         if value is Undefined:
             return None, [{"loc": ["cookie", self.alias], "msg": "Field required", "type": "missing", "input": None}]
         return value, None
