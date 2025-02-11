@@ -1,3 +1,4 @@
+import copy
 import inspect
 import warnings
 from collections.abc import Callable
@@ -67,8 +68,9 @@ def analyze_param(
     if isinstance(base_annotation, params.Depends):
         depends = base_annotation
     else:
+        field_info = copy.deepcopy(base_annotation)
         field = create_model_field(
-            field_info=base_annotation,
+            field_info=field_info,
             annotation=type_annotation,
             name=param_name,
             default=value,
