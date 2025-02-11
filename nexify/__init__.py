@@ -1,4 +1,4 @@
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 from .applications import Nexify as Nexify
 from .param_functions import Body as Body
