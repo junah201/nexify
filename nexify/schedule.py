@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Annotated, Literal
 
+from nexify.dependencies.utils import get_dependant
+from nexify.middleware import RequestParsingMiddleware
 from nexify.operation import Operation, OperationManager
 from nexify.types import HandlerType
 from typing_extensions import Doc
@@ -205,8 +207,13 @@ class Cron(ScheduleExpression):
 
 class Schedule(Operation):
     def __init__(self, handler: Callable, expressions: list[ScheduleExpression]):
-        super().__init__(handler=handler, middlewares=[])
+        super().__init__(handler=handler, middlewares=[RequestParsingMiddleware()])
         self.expressions = expressions
+
+        self.dependant = get_dependant(
+            path="/",
+            call=self.handler,
+        )
 
 
 class Scheduler(OperationManager[Schedule]):
