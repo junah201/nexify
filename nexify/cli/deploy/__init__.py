@@ -374,7 +374,7 @@ def create_template(
                 current["children"][part] = {
                     "full_path": f"{current['full_path']}/{part}",
                     "children": {},
-                    "resource_key": LambdaSpec.get_api_gateway_resource_key(f"{current['full_path']}/{part}"),
+                    "resource_key": RouteLambdaSpec.get_api_gateway_resource_key(f"{current['full_path']}/{part}"),
                 }
             current = current["children"][part]
 

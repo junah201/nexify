@@ -8,4 +8,4 @@ def test_schedule(app):
     @app.schedule(Rate(5, unit=Rate.MINUTES))
     def handler(): ...
 
-    assert str(app.scheduler.schedules[0].expressions[0]) == "rate(5 minutes)"
+    assert str(app.scheduler.operations[0].expressions[0]) == "rate(5 minutes)"

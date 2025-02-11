@@ -348,8 +348,6 @@ class Nexify:
         self.exception_handlers.setdefault(RequestValidationError, request_validation_exception_handler)
         self.exception_handlers.setdefault(ResponseValidationError, response_validation_exception_handler)
 
-        self.schedules = []
-
     def get(
         self,
         path: Annotated[
