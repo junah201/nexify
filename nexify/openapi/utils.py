@@ -1,8 +1,9 @@
 import inspect
 import warnings
-from collections.abc import Sequence
+from itertools import chain
 from typing import Any, Literal, cast
 
+from nexify.dependencies.utils import get_flat_dependant
 from nexify.encoders import jsonable_encoder
 from nexify.models import ModelField
 from nexify.openapi.constants import METHODS_WITH_BODY, REF_TEMPLATE
@@ -19,7 +20,7 @@ def get_openapi(
     openapi_version: str = "3.1.0",
     summary: str | None = None,
     description: str | None = None,
-    routes: Sequence[Route],
+    routes: list[Route],
     tags: list[dict[str, Any]] | None = None,
     servers: list[dict[str, str | Any]] | None = None,
     terms_of_service: str | None = None,
@@ -53,18 +54,18 @@ def get_openapi(
     paths: dict[str, dict[str, Any]] = {}
     operation_ids: set[str] = set()
 
-    all_fields = []
-    for route in list(routes or []):
-        _all_fields = (
-            route.dependant.path_params
-            + route.dependant.query_params
-            + route.dependant.body_params
-            + route.dependant.event_params
-            + route.dependant.context_params
+    all_fields = [
+        field
+        for route in routes
+        for field in chain(
+            get_flat_dependant(route.dependant).path_params,
+            get_flat_dependant(route.dependant).query_params,
+            get_flat_dependant(route.dependant).body_params,
+            get_flat_dependant(route.dependant).event_params,
+            get_flat_dependant(route.dependant).context_params,
+            ([route.response_field] if route.response_field else []),
         )
-        if route.response_field:
-            _all_fields.append(route.response_field)
-        all_fields.extend(_all_fields)
+    ]
 
     schema_generator = GenerateJsonSchema(ref_template=REF_TEMPLATE)
     field_mapping, definitions = get_definitions(
@@ -169,9 +170,10 @@ def _get_openapi_operation_parameters(
     field_mapping: dict[tuple[ModelField, Literal["validation", "serialization"]], JsonSchemaValue],
 ) -> list[dict[str, Any]]:
     parameters = []
+    flat_dependant = get_flat_dependant(route.dependant)
     parameter_groups = [
-        (ParamTypes.path, route.dependant.path_params),
-        (ParamTypes.query, route.dependant.query_params),
+        (ParamTypes.path, flat_dependant.path_params),
+        (ParamTypes.query, flat_dependant.query_params),
     ]
     for param_type, param_group in parameter_groups:
         for param in param_group:

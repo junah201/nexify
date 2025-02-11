@@ -176,3 +176,44 @@ def get_dependant(
             assert False, f"Unsupported dependency type: {param_details.field.field_info}"  # pragma: no cover
 
     return dependant
+
+
+CacheKey = tuple[Callable[..., Any] | None, tuple[str, ...]]
+
+
+def get_flat_dependant(
+    dependant: Dependant,
+    *,
+    visited: list[CacheKey] = None,
+) -> Dependant:
+    if visited is None:
+        visited = []
+    cache_key = (dependant.call,)
+    if cache_key in visited:
+        return dependant
+    visited.append(dependant.cache_key)
+
+    flat_dependant = Dependant(
+        path_params=dependant.path_params.copy(),
+        query_params=dependant.query_params.copy(),
+        body_params=dependant.body_params.copy(),
+        header_params=dependant.header_params.copy(),
+        cookie_params=dependant.cookie_params.copy(),
+        event_params=dependant.event_params.copy(),
+        context_params=dependant.context_params.copy(),
+        use_cache=dependant.use_cache,
+        path=dependant.path,
+    )
+    for sub_dependant in dependant.dependencies:
+        if sub_dependant.cache_key in visited:
+            continue
+        flat_sub = get_flat_dependant(sub_dependant, visited=visited)
+        flat_dependant.path_params.extend(flat_sub.path_params)
+        flat_dependant.query_params.extend(flat_sub.query_params)
+        flat_dependant.body_params.extend(flat_sub.body_params)
+        flat_dependant.header_params.extend(flat_sub.header_params)
+        flat_dependant.cookie_params.extend(flat_sub.cookie_params)
+        flat_dependant.event_params.extend(flat_sub.event_params)
+        flat_dependant.context_params.extend(flat_sub.context_params)
+
+    return flat_dependant
