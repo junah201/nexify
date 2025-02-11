@@ -1,7 +1,12 @@
+from abc import ABC, abstractmethod
+import re
 from typing import Annotated, Literal, TypedDict
 
+from nexify.operation import Operation
 from nexify.routing import Route
 from typing_extensions import Doc
+
+from nexify.schedule import Schedule
 
 
 class IAMRoleStatement(TypedDict):
@@ -53,35 +58,22 @@ class NexifyConfig(TypedDict):
 class LambdaSpec:
     def __init__(
         self,
-        route: Route,
-        method: Annotated[
-            Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-            Doc("The HTTP method."),
-        ],
+        operation: Operation,
         config: NexifyConfig,
     ):
-        self.name = route.endpoint.__name__
-        self.path = route.path
-        self.method = method
-        self.identifier = self._generate_identifier()
-        self.handler = f"{route.endpoint.__module__}.{route.endpoint.__name__}"
-        self.description = route.endpoint.__doc__ or ""
-        self.runtime = getattr(route, "runtime", None) or config["provider"].get("runtime", "python3.10")
-        self.memory_size = getattr(route, "memory_size", None) or config["provider"].get("memorySize", 128)
-        self.timeout = getattr(route, "timeout", None) or config["provider"].get("timeout", 3)
-        self.architectures = getattr(route, "architectures", None) or [config["provider"].get("architecture", "x86_64")]
-        self.log_retention_in_days = getattr(route, "log_retention_in_days", None) or config["provider"].get(
+        self.name = operation.handler.__name__
+        self.identifier = self.name.title().replace("_", "")
+        self.handler = f"{operation.handler.__module__}.{operation.handler.__name__}"
+        self.description = operation.handler.__doc__ or ""
+        self.runtime = getattr(operation, "runtime", None) or config["provider"].get("runtime", "python3.10")
+        self.memory_size = getattr(operation, "memory_size", None) or config["provider"].get("memorySize", 128)
+        self.timeout = getattr(operation, "timeout", None) or config["provider"].get("timeout", 3)
+        self.architectures = getattr(operation, "architectures", None) or [
+            config["provider"].get("architecture", "x86_64")
+        ]
+        self.log_retention_in_days = getattr(operation, "log_retention_in_days", None) or config["provider"].get(
             "logRetentionInDays", 30
         )
-
-    def _generate_identifier(self) -> str:
-        """
-        Generate a Lambda function name based on the endpoint name.
-        - First letter is capitalized
-        - Underscores are removed and the following letter is capitalized
-        - The rest is left as is
-        """
-        return self.name.title().replace("_", "")
 
     @property
     def log_group_key(self) -> str:
@@ -112,6 +104,21 @@ class LambdaSpec:
         """
         return self.name
 
+
+class RouteLambdaSpec(LambdaSpec):
+    def __init__(
+        self,
+        route: Route,
+        method: Annotated[
+            Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+            Doc("The HTTP method."),
+        ],
+        config: NexifyConfig,
+    ):
+        super().__init__(route, config=config)
+        self.path = route.path
+        self.method = method
+
     @property
     def permission_key(self) -> str:
         """
@@ -121,7 +128,7 @@ class LambdaSpec:
         return f"{self.lambda_function_key}PermissionApiGateway"
 
     @property
-    def method_key(self) -> str:
+    def api_gateway_method_key(self) -> str:
         """
         Method key for the CloudFormation template.
         This is the method that will be attached to the API Gateway.
@@ -129,7 +136,7 @@ class LambdaSpec:
         return f"{self.identifier}{self.method}Method"
 
     @property
-    def resource_key(self) -> str:
+    def api_gateway_resource_key(self) -> str:
         """
         Resource key for the CloudFormation template.
         This is the resource that will be attached to the API Gateway.
@@ -138,10 +145,10 @@ class LambdaSpec:
         - The rest is left as is
         - {user_id} -> UserIdVar
         """
-        return self.get_resource_key(self.path)
+        return self.get_api_gateway_resource_key(self.path)
 
     @classmethod
-    def get_resource_key(cls, path: str) -> str:
+    def get_api_gateway_resource_key(cls, path: str) -> str:
         """
         Resource key for the CloudFormation template.
         This is the resource that will be attached to the API Gateway.
@@ -154,7 +161,7 @@ class LambdaSpec:
             "}", "Var"
         )
 
-    def get_resource_id(self, api_gateway_key: str) -> dict[str, list[str] | str]:
+    def get_api_gateway_resource_id(self, api_gateway_key: str) -> dict[str, list[str] | str]:
         """
         Resource id for the CloudFormation template.
         This is the resource that will be attached to the API Gateway.
@@ -162,4 +169,14 @@ class LambdaSpec:
         if self.path == "/":
             return {"Fn::GetAtt": [api_gateway_key, "RootResourceId"]}
 
-        return {"Ref": self.resource_key}
+        return {"Ref": self.api_gateway_resource_key}
+
+
+class ScheduleLambdaSpec(LambdaSpec):
+    def __init__(
+        self,
+        schedule: Schedule,
+        config: NexifyConfig,
+    ):
+        super().__init__(schedule, config=config)
+        self.expressions = schedule.expressions

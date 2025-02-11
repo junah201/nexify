@@ -16,7 +16,8 @@ from nexify.middleware import Middleware
 from nexify.openapi.docs import get_swagger_ui_html
 from nexify.openapi.utils import get_openapi
 from nexify.responses import HttpResponse, JSONResponse
-from nexify.types import ExceptionHandler, Handler, MiddlewareType
+from nexify.schedule import ScheduleExpression, Scheduler
+from nexify.types import ExceptionHandler, HandlerType, MiddlewareType
 from typing_extensions import Doc
 
 
@@ -337,6 +338,8 @@ class Nexify:
         self.middlewares = middlewares or []
         self.router = routing.APIRouter(middlewares=self.middlewares)
 
+        self.scheduler = Scheduler()
+
         self.exception_handlers: dict[
             type[Exception],
             ExceptionHandler,
@@ -344,6 +347,8 @@ class Nexify:
         self.exception_handlers.setdefault(HTTPException, http_exception_handler)
         self.exception_handlers.setdefault(RequestValidationError, request_validation_exception_handler)
         self.exception_handlers.setdefault(ResponseValidationError, response_validation_exception_handler)
+
+        self.schedules = []
 
     def get(
         self,
@@ -475,7 +480,7 @@ class Nexify:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
+    ) -> Callable[[Callable], HandlerType]:
         """
         Add a net *path operation* to the AWS REST API.
         """
@@ -625,7 +630,7 @@ class Nexify:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
+    ) -> Callable[[Callable], HandlerType]:
         """
         Add a net *path operation* to the AWS REST API.
         """
@@ -775,7 +780,7 @@ class Nexify:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
+    ) -> Callable[[Callable], HandlerType]:
         """
         Add a net *path operation* to the AWS REST API.
         """
@@ -925,7 +930,7 @@ class Nexify:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
+    ) -> Callable[[Callable], HandlerType]:
         """
         Add a net *path operation* to the AWS REST API.
         """
@@ -1075,7 +1080,7 @@ class Nexify:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
+    ) -> Callable[[Callable], HandlerType]:
         """
         Add a net *path operation* to the AWS REST API.
         """
@@ -1225,7 +1230,7 @@ class Nexify:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
+    ) -> Callable[[Callable], HandlerType]:
         """
         Add a net *path operation* to the AWS REST API.
         """
@@ -1256,7 +1261,7 @@ class Nexify:
                 terms_of_service=self.terms_of_service,
                 contact=self.contact,
                 license_info=self.license_info,
-                routes=self.router.routes,
+                routes=self.router.operations,
                 tags=self.openapi_tags,
                 servers=self.servers,
             )
@@ -1294,3 +1299,9 @@ class Nexify:
 
     def add_exception_handler(self, exception_class: type[Exception], handler: ExceptionHandler) -> None:
         self.exception_handlers[exception_class] = handler
+
+    def schedule(self, expression: ScheduleExpression | list[ScheduleExpression]) -> Callable:
+        if not isinstance(expression, list):
+            expression = [expression]
+
+        return self.scheduler.schedule(expressions=expression)

@@ -15,8 +15,9 @@ from nexify.middleware import (
     ServerErrorMiddleware,
 )
 from nexify.models import create_model_field
+from nexify.operation import Operation, OperationManager
 from nexify.responses import HttpResponse, JSONResponse
-from nexify.types import ExceptionHandler, Handler, MiddlewareType
+from nexify.types import ExceptionHandler, HandlerType, MiddlewareType
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined, PydanticUndefinedType
 from typing_extensions import Doc
@@ -25,11 +26,11 @@ Undefined: Any = PydanticUndefined
 UndefinedType: Any = PydanticUndefinedType
 
 
-class Route:
+class Route(Operation):
     def __init__(
         self,
         path: str,
-        endpoint: Callable,
+        handler: Callable,
         *,
         methods: Annotated[
             Sequence[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]],
@@ -168,8 +169,9 @@ class Route:
         ] = None,
     ) -> None:
         assert path.startswith("/"), "Path must start with '/'"
+        super().__init__(handler=handler, middlewares=middlewares)
+
         self.path = path
-        self.endpoint = endpoint
         self.methods: set[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = set(methods)
         self.status_code = status_code
         self.dependencies = list(dependencies or [])
@@ -179,14 +181,14 @@ class Route:
         self.response_description = response_description
         self.deprecated = deprecated
         self.operation_id = operation_id
-        self.name = get_name(endpoint) if name is None else name
+        self.name = get_name(handler) if name is None else name
         self.openapi_extra = openapi_extra
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
         self.unique_id = self.operation_id or generate_unique_id(self)
 
         self.dependant = get_dependant(
             path=self.path_format,
-            call=self.endpoint,
+            call=self.handler,
         )
         for depends in reversed(self.dependencies):
             self.dependant.dependencies.insert(
@@ -198,9 +200,9 @@ class Route:
                 ),
             )
 
-        return_annotation = get_typed_return_annotation(self.endpoint)
+        return_annotation = get_typed_return_annotation(self.handler)
         if return_annotation is not None:
-            _name = f"{self.endpoint.__name__}_response"
+            _name = f"{self.handler.__name__}_response"
             self.response_field = create_model_field(
                 FieldInfo(
                     name=_name,
@@ -211,24 +213,9 @@ class Route:
         else:
             self.response_field = None
         self.response_class = response_class
-        self.middlewares = middlewares or []
-
-    def __call__(self, event, _context):
-        def call_next(event, _context, index=0, **kwargs):
-            if index < len(self.middlewares):
-                return self.middlewares[index](
-                    route=self,
-                    event=event,
-                    context=_context,
-                    call_next=lambda e, c, **new_kwargs: call_next(e, c, index + 1, **kwargs, **new_kwargs),
-                )
-            _parsed_data = kwargs.pop("_parsed_data", {})
-            return self.endpoint(**_parsed_data)
-
-        return call_next(event, _context)
 
 
-class APIRouter:
+class APIRouter(OperationManager[Route]):
     def __init__(
         self,
         *,
@@ -253,10 +240,9 @@ class APIRouter:
             ),
         ] = None,
     ):
+        super().__init__(middlewares=middlewares or [])
         self.prefix = prefix
         self.tags = tags or []
-        self.routes: list[Route] = []
-        self.middlewares = middlewares or []
 
     def route(
         self,
@@ -406,8 +392,8 @@ class APIRouter:
                 """
             ),
         ] = None,
-    ) -> Callable[[Callable], Handler]:
-        def decorator(func: Callable) -> Handler:
+    ) -> Callable[[Callable], HandlerType]:
+        def decorator(func: Callable) -> HandlerType:
             route = self.create_route(
                 path,
                 func,
@@ -425,7 +411,7 @@ class APIRouter:
                 openapi_extra=openapi_extra,
                 exception_handlers=exception_handlers,
             )
-            self.routes.append(route)
+            self.operations.append(route)
             return route
 
         return decorator
@@ -433,7 +419,7 @@ class APIRouter:
     def create_route(
         self,
         path: str,
-        endpoint: Handler,
+        endpoint: HandlerType,
         *,
         methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]] = ["GET"],
         status_code: int | None = None,
@@ -461,7 +447,7 @@ class APIRouter:
         )
         return Route(
             path=self.prefix + path,
-            endpoint=endpoint,
+            handler=endpoint,
             methods=methods,
             status_code=status_code,
             tags=tags,
@@ -1480,5 +1466,5 @@ def generate_unique_id(route: Route) -> str:
     return operation_id
 
 
-def get_name(endpoint: Handler) -> str:
+def get_name(endpoint: HandlerType) -> str:
     return getattr(endpoint, "__name__", endpoint.__class__.__name__)

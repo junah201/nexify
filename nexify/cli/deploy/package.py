@@ -22,7 +22,7 @@ def install_requirements(
     architecture = config.get("architecture", "x86_64")
     platform = "manylinux2014_aarch64" if architecture == "arm64" else "manylinux2014_x86_64"
 
-    progress.update(task, status="Setting up Python environment...")
+    progress.update(task, status="\n\tSetting up Python environment...")
     process = subprocess.Popen(
         [
             "pip",
@@ -48,7 +48,7 @@ def install_requirements(
     for c in iter(lambda: process.stdout.read(1), b""):  # type: ignore
         msg += c.decode("utf-8")
         if "\n" in msg:
-            progress.update(task, status=msg)
+            progress.update(task, status="\n\t" + msg)
             msg = ""
 
     process.wait()

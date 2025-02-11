@@ -16,7 +16,7 @@ from nexify.applications import Nexify
 from nexify.cli.application import create_app
 from nexify.cli.deploy.constants import BASE_TEMPLATE
 from nexify.cli.deploy.package import install_requirements, package_lambda_function
-from nexify.cli.deploy.types import LambdaSpec, NexifyConfig
+from nexify.cli.deploy.types import LambdaSpec, NexifyConfig, RouteLambdaSpec, ScheduleLambdaSpec
 from nexify.openapi.docs import get_redoc_html, get_swagger_ui_html
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -115,6 +115,8 @@ def deploy(
 
     msg = "Endpoints:\n"
     for spec in lambda_specs:
+        if not isinstance(spec, RouteLambdaSpec):
+            continue
         url = f"{service_endpoint}{spec.path}"
         msg += f"    - [green]{spec.method:5s}[/green] [link={url}]{url}[/link]\n"
 
@@ -154,14 +156,18 @@ def import_app(path: Path) -> Nexify:
 def analyze_app(app: Nexify, *, config: NexifyConfig) -> list[LambdaSpec]:
     lambda_specs = []
 
-    for route in app.router.routes:
+    for route in app.router.operations:
         for method in route.methods:
-            lambda_spec = LambdaSpec(
-                route=route,
+            lambda_spec = RouteLambdaSpec(
+                route,
                 method=method,
                 config=config,
             )
             lambda_specs.append(lambda_spec)
+
+    for schedule in app.scheduler.operations:
+        lambda_spec = ScheduleLambdaSpec(schedule, config=config)
+        lambda_specs.append(lambda_spec)
 
     return lambda_specs
 
@@ -349,6 +355,9 @@ def create_template(
         }
         t["Resources"][api_gateway_key] = api_gateway
 
+    route_lambda_specs = [spec for spec in lambda_specs if isinstance(spec, RouteLambdaSpec)]
+    schedule_lambda_specs = [spec for spec in lambda_specs if isinstance(spec, ScheduleLambdaSpec)]
+
     # Define Rest API or HTTP API Resources
     # Make Tree for API Resources
     api_resources = {
@@ -356,7 +365,7 @@ def create_template(
         "children": {},
         "spec": None,
     }
-    for spec in lambda_specs:
+    for spec in route_lambda_specs:
         path = spec.path
         path_parts = path.split("/")
         current = api_resources
@@ -365,7 +374,7 @@ def create_template(
                 current["children"][part] = {
                     "full_path": f"{current['full_path']}/{part}",
                     "children": {},
-                    "resource_key": LambdaSpec.get_resource_key(f"{current['full_path']}/{part}"),
+                    "resource_key": LambdaSpec.get_api_gateway_resource_key(f"{current['full_path']}/{part}"),
                 }
             current = current["children"][part]
 
@@ -391,7 +400,7 @@ def create_template(
     create_api_resource(api_resources)
 
     # Define API Gateway Permission to invoke Lambda
-    for spec in lambda_specs:
+    for spec in route_lambda_specs:
         t["Resources"][spec.permission_key] = {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
@@ -420,13 +429,13 @@ def create_template(
         }
 
     # Define API Gateway Method
-    for spec in lambda_specs:
-        t["Resources"][spec.method_key] = {
+    for spec in route_lambda_specs:
+        t["Resources"][spec.api_gateway_method_key] = {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
                 "HttpMethod": spec.method,
                 "RequestParameters": {},
-                "ResourceId": spec.get_resource_id(api_gateway_key),
+                "ResourceId": spec.get_api_gateway_resource_id(api_gateway_key),
                 "RestApiId": {"Ref": api_gateway_key},
                 "ApiKeyRequired": False,
                 "AuthorizationType": "NONE",
@@ -586,8 +595,54 @@ def create_template(
             "RestApiId": {"Ref": api_gateway_key},
             "StageName": config["provider"]["stage"],
         },
-        "DependsOn": [spec.method_key for spec in lambda_specs],
+        "DependsOn": [spec.api_gateway_method_key for spec in route_lambda_specs],
     }
+
+    # Define Scheduled Events
+    for spec in schedule_lambda_specs:
+        for expression in spec.expressions:
+            t["Resources"][f"{spec.identifier}{expression.rule_key}"] = {
+                "Type": "AWS::Events::Rule",
+                "Properties": {
+                    "Description": spec.description,
+                    "Name": f"{spec.identifier}{expression.rule_name}",
+                    "ScheduleExpression": str(expression),
+                    "State": "ENABLED",
+                    "Targets": [
+                        {
+                            "Arn": {"Fn::GetAtt": [spec.lambda_function_key, "Arn"]},
+                            "Id": spec.name,
+                        }
+                    ],
+                },
+            }
+
+    # Define Permissions for Scheduled Events
+    for spec in schedule_lambda_specs:
+        for expression in spec.expressions:
+            t["Resources"][f"{spec.identifier}{expression.permission_key}"] = {
+                "Type": "AWS::Lambda::Permission",
+                "Properties": {
+                    "Action": "lambda:InvokeFunction",
+                    "FunctionName": {"Fn::GetAtt": [spec.lambda_function_key, "Arn"]},
+                    "Principal": "events.amazonaws.com",
+                    "SourceArn": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "arn:",
+                                {"Ref": "AWS::Partition"},
+                                ":events:",
+                                {"Ref": "AWS::Region"},
+                                ":",
+                                {"Ref": "AWS::AccountId"},
+                                ":rule/",
+                                f"{spec.identifier}{expression.rule_key}",
+                            ],
+                        ]
+                    },
+                },
+            }
 
     # Add Outputs
     t["Outputs"]["ServiceEndpoint"] = {

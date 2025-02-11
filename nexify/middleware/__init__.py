@@ -10,13 +10,13 @@ from nexify.exceptions import RequestValidationError, ResponseValidationError
 from nexify.responses import HttpResponse
 
 if TYPE_CHECKING:  # pragma: no cover
-    from nexify.routing import Route
+    from nexify.operation import Operation
 from nexify.types import ContextType, EventType, ExceptionHandler
 
 
 class Middleware:
     @abstractmethod
-    def __call__(self, route: "Route", event: EventType, context: ContextType, call_next): ...
+    def __call__(self, route: "Operation", event: EventType, context: ContextType, call_next): ...
 
 
 class ServerErrorMiddleware(Middleware):
@@ -170,4 +170,4 @@ class RequestParsingMiddleware(Middleware):
     def __call__(self, route, event, context, call_next):
         with ExitStack() as exit_stack:
             parsed_data = solve_dependencies(route.dependant, event, context, exit_stack=exit_stack)
-            return call_next(event, context, _parsed_data=parsed_data)
+            return call_next(event, context, _nexify_parsed_data=parsed_data)

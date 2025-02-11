@@ -9,8 +9,9 @@ EventType = dict[str, Any]
 ContextType = dict[str, Any]
 
 DecoratedCallable = TypeVar("DecoratedCallable", bound=Callable[..., Any])
-Handler = Callable[[dict, dict], Any]
+HandlerType = Callable[[dict, dict], Any]
 IncEx = set[int] | set[str] | dict[int, Any] | dict[str, Any]
 
 ExceptionHandler = Callable[[EventType, ContextType, Any], "HttpResponse"]
-MiddlewareType = Callable[["Route", EventType, ContextType, Callable, Any], Any]
+# MiddlewareType = Callable[["Route", EventType, ContextType, Callable, Any], Any]
+MiddlewareType = TypeVar("MiddlewareType", bound=Callable[["Route", EventType, ContextType, Callable, Any], Any])
