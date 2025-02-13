@@ -22,6 +22,8 @@ def install_requirements(
     architecture = config.get("architecture", "x86_64")
     platform = "manylinux2014_aarch64" if architecture == "arm64" else "manylinux2014_x86_64"
 
+    extra_args = config.get("package", {}).get("pipCmdExtraArgs", [])
+
     progress.update(task, status="\n\tSetting up Python environment...")
     process = subprocess.Popen(
         [
@@ -39,7 +41,8 @@ def install_requirements(
             config["provider"]["runtime"].strip("python"),
             "--only-binary=:all:",
             "--upgrade",
-        ],
+        ]
+        + extra_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
