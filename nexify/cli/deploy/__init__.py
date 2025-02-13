@@ -15,6 +15,7 @@ from mypy_boto3_s3 import S3Client
 from nexify.applications import Nexify
 from nexify.cli.application import create_app
 from nexify.cli.deploy.constants import BASE_TEMPLATE
+from nexify.cli.deploy.environ import load_env
 from nexify.cli.deploy.package import install_requirements, package_lambda_function
 from nexify.cli.deploy.types import LambdaSpec, NexifyConfig, RouteLambdaSpec, ScheduleLambdaSpec
 from nexify.openapi.docs import get_redoc_html, get_swagger_ui_html
@@ -51,6 +52,12 @@ def deploy(
         progress.update(load_nexify_config_task, completed=True)
         progress.remove_task(load_nexify_config_task)
         print("[green]:heavy_check_mark:[/green] Config loaded successfully!")
+
+        load_env_task = progress.add_task("Loading environment variables", status="")
+        load_env(Path.cwd())
+        progress.update(load_env_task, completed=True)
+        progress.remove_task(load_env_task)
+        print("[green]:heavy_check_mark:[/green] Environment variables loaded successfully!")
 
         analyze_app_test = progress.add_task("Analyzing Nexify app", status="")
         lambda_specs = analyze_app(app, config=config)
@@ -245,6 +252,8 @@ def create_template(
         }
 
     # Define Iam Role For Lambda Execution
+    iam_role_statement = config["provider"].get("iamRoleStatements", [])
+
     t["Resources"]["IamRoleLambdaExecution"] = {
         "Type": "AWS::IAM::Role",
         "Properties": {
@@ -290,7 +299,8 @@ def create_template(
                                     for spec in lambda_specs
                                 ],
                             },
-                        ],
+                        ]
+                        + iam_role_statement,
                     },
                 }
             ],
@@ -310,6 +320,19 @@ def create_template(
         },
     }
 
+    def complie_env():
+        env = {}
+        for key, value in config["provider"].get("environment", {}).items():
+            # 만약 value가 ${env:YOUR_CUSTOM_ENV}와 같은 형식이면, 해당 환경변수를 가져와서 value로 대체
+            if value.startswith("${env:") and value.endswith("}"):
+                env_key = value[6:-1]
+                value = os.environ.get(env_key, "")
+            env[key] = value
+
+        return env
+
+    env = complie_env()
+
     # Define Lambda Functions
     for spec in lambda_specs:
         t["Resources"][spec.lambda_function_key] = {
@@ -323,7 +346,7 @@ def create_template(
                 "Timeout": spec.timeout,
                 "Architectures": spec.architectures,
                 "Description": spec.description,
-                "Environment": {"Variables": {}},
+                "Environment": {"Variables": env},
                 "Role": {"Fn::GetAtt": ["IamRoleLambdaExecution", "Arn"]},
             },
             "DependsOn": [spec.log_group_key],

@@ -46,7 +46,11 @@ def test_deploy_create_template(basic_app):
         config=mock_settings,
     )
 
-    expected = {
+    del template["Resources"]["NexifyOpenAPIMethod"]
+    del template["Resources"]["NexifySwaggerUIMethod"]
+    del template["Resources"]["NexifyReDocMethod"]
+
+    assert template == {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "The AWS CloudFormation template for this Nexify application",
         "Resources": {
@@ -153,7 +157,14 @@ def test_deploy_create_template(basic_app):
                                                 "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/read_item:*"
                                             },
                                         ],
-                                    }
+                                    },
+                                    {
+                                        "Action": [
+                                            "s3:*",
+                                        ],
+                                        "Effect": "Allow",
+                                        "Resource": "*",
+                                    },
                                 ],
                             },
                         }
@@ -173,7 +184,7 @@ def test_deploy_create_template(basic_app):
                     "Timeout": 10,
                     "Architectures": ["x86_64"],
                     "Description": "",
-                    "Environment": {"Variables": {}},
+                    "Environment": {"Variables": {"YOUR_CUSTOM_ENV": ""}},
                     "Role": {"Fn::GetAtt": ["IamRoleLambdaExecution", "Arn"]},
                 },
                 "DependsOn": ["ReadItemsLogGroup"],
@@ -189,7 +200,7 @@ def test_deploy_create_template(basic_app):
                     "Timeout": 10,
                     "Architectures": ["x86_64"],
                     "Description": "",
-                    "Environment": {"Variables": {}},
+                    "Environment": {"Variables": {"YOUR_CUSTOM_ENV": ""}},
                     "Role": {"Fn::GetAtt": ["IamRoleLambdaExecution", "Arn"]},
                 },
                 "DependsOn": ["CreateItemLogGroup"],
@@ -205,7 +216,7 @@ def test_deploy_create_template(basic_app):
                     "Timeout": 10,
                     "Architectures": ["x86_64"],
                     "Description": "",
-                    "Environment": {"Variables": {}},
+                    "Environment": {"Variables": {"YOUR_CUSTOM_ENV": ""}},
                     "Role": {"Fn::GetAtt": ["IamRoleLambdaExecution", "Arn"]},
                 },
                 "DependsOn": ["ReadItemLogGroup"],
@@ -453,8 +464,3 @@ def test_deploy_create_template(basic_app):
             },
         },
     }
-    del template["Resources"]["NexifyOpenAPIMethod"]
-    del template["Resources"]["NexifySwaggerUIMethod"]
-    del template["Resources"]["NexifyReDocMethod"]
-
-    assert template == expected
