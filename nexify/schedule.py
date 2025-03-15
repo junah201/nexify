@@ -74,9 +74,20 @@ class Rate(ScheduleExpression):
                 """
             ),
         ],
+        name: Annotated[
+            str | None,
+            Doc(
+                """
+                The name of the rule that will be used in the CloudFormation template.
+
+                This is a unique identifier for the rate rule.
+                """
+            ),
+        ] = None,
     ) -> None:
         self.value = value
         self.unit = unit
+        self.name = name
 
     def __str__(self):
         """
@@ -100,7 +111,7 @@ class Rate(ScheduleExpression):
         This is a unique identifier for the rate rule.
         """
 
-        return f"RuleRate{self.value}{self.unit}"
+        return self.name or f"RuleRate{self.value}{self.unit}"
 
     @property
     def rule_name(self):
@@ -110,7 +121,7 @@ class Rate(ScheduleExpression):
         This is a unique identifier for the rate rule.
         """
 
-        return f"RuleRate{self.value}{self.unit}"
+        return self.name or f"RuleRate{self.value}{self.unit}"
 
     @property
     def permission_key(self):
@@ -154,6 +165,16 @@ class Cron(ScheduleExpression):
             str | int,
             Doc("Specifies the year when the function should run (`*` for any year or specific year values)."),
         ],
+        name: Annotated[
+            str | None,
+            Doc(
+                """
+                The name of the rule that will be used in the CloudFormation template.
+
+                This is a unique identifier for the rate rule.
+                """
+            ),
+        ] = None,
     ):
         self.minutes = minutes
         self.hours = hours
@@ -161,6 +182,7 @@ class Cron(ScheduleExpression):
         self.month = month
         self.day_of_week = day_of_week
         self.year = year
+        self.name = name
 
     def __str__(self):
         """
@@ -183,7 +205,7 @@ class Cron(ScheduleExpression):
         result = "Rule" + "".join(
             str(getattr(self, attr)) if getattr(self, attr) == "*" else "all" for attr in cron_attrs
         )
-        return result
+        return self.name or result
 
     @property
     def rule_name(self):
@@ -193,7 +215,7 @@ class Cron(ScheduleExpression):
         This is a unique identifier for the cron rule.
         """
 
-        return self.rule_key
+        return self.name or self.rule_key
 
     @property
     def permission_key(self):
