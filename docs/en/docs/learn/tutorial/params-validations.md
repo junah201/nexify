@@ -1,4 +1,4 @@
-# Path and Query Parameters and Validation
+# Parameters and Validation
 
 You can add validation for both path and query parameters.
 
@@ -65,11 +65,11 @@ If an invalid `email` is provided, a 422 response like the following will be ret
 
 ## 문서화
 
-![Swagger UI with max and min length](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-validations/01-swagger-ui.png)
+![Swagger UI with max and min length](https://nexify.junah.dev/img/learn/tutorial/params-validations/01-swagger-ui.png)
 
 Both maximum and minimum lengths are displayed in Swagger UI (and ReDoc).
 
-![Swagger UI with pattern](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-validations/02-swagger-ui.png)
+![Swagger UI with pattern](https://nexify.junah.dev/img/learn/tutorial/params-validations/02-swagger-ui.png)
 
 Additionally, various data validation rules are automatically included in Swagger UI (and ReDoc).
 

@@ -1,6 +1,6 @@
-# 경로 및 쿼리 매개변수와 데이터 검증
+# 매개변수와 데이터 검증
 
-**Nexify**를 사용하면 경로 매개변수와 쿼리 매개변수에 대한 검증을 추가할 수 있습니다.
+**Nexify**를 사용하면 다양한 매개변수에 대한 검증을 추가할 수 있습니다.
 
 ## 문자열 검증: 최소 & 최대 길이
 
@@ -65,11 +65,11 @@
 
 ## 문서화
 
-![Swagger UI with max and min length](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-validations/01-swagger-ui.png)
+![Swagger UI with max and min length](https://nexify.junah.dev/img/learn/tutorial/params-validations/01-swagger-ui.png)
 
 최대, 최소 길이는 모두 Swagger UI에 표시됩니다.
 
-![Swagger UI with pattern](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-validations/02-swagger-ui.png)
+![Swagger UI with pattern](https://nexify.junah.dev/img/learn/tutorial/params-validations/02-swagger-ui.png)
 
 이뿐만 아니라 다양한 데이터 검증 조건이 자동으로 Swagger UI에 포함됩니다.
 

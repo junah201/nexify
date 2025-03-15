@@ -91,13 +91,23 @@ nav:
           - learn/tutorial/first-steps.md
           - learn/tutorial/path-params.md
           - learn/tutorial/query-params.md
-          - learn/tutorial/path-and-query-params-validations.md
-          - learn/tutorial/path-and-query-params-extra-information.md
+          - learn/tutorial/params-validations.md
+          - learn/tutorial/params-extra-information.md
+          - learn/tutorial/header-params.md
+          - learn/tutorial/cookie-params.md
           - learn/tutorial/body.md
           - learn/tutorial/body-fields.md
-          - learn/tutorial/extra-data-types.md
           - learn/tutorial/response-model.md
-          - learn/tutorial/response-status-code.md
+          - learn/tutorial/status-code.md
+          - learn/tutorial/exception-handling.md
+          - Dependencies:
+              - learn/tutorial/dependencies/index.md
+              - learn/tutorial/dependencies/classes-as-dependencies.md
+              - learn/tutorial/dependencies/sub-dependencies.md
+              - learn/tutorial/dependencies/dependencies-in-decorators.md
+              - learn/tutorial/dependencies/global-dependencies.md
+              - learn/tutorial/dependencies/dependencies-with-yield.md
+          - learn/tutorial/middleware.md
 
   - Reference (Code API):
       - reference/index.md

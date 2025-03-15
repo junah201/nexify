@@ -1,6 +1,6 @@
-# 경로 및 쿼리 매개변수의 추가 정보
+# 매개변수의 추가 정보
 
-**Nexify**를 사용하면 경로 매개변수와 쿼리 매개변수에 대한 추가 정보를 기입할 수 있습니다.
+**Nexify**를 사용하면 다양한 매개변수에 대한 추가 정보를 기입할 수 있습니다.
 
 ## 제목 (title)과 설명 (description)
 
@@ -10,7 +10,7 @@
 
 `item_id`에 대한 설명이 있는 것을 볼 수 있습니다.
 
-![Swagger UI Title and Description](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-extra-information/01-swagger-ui-title-and-description.png)
+![Swagger UI Title and Description](https://nexify.junah.dev/img/learn/tutorial/params-extra-information/01-swagger-ui-title-and-description.png)
 
 /// info
 제목은 ReDoc에서만 표시됩니다.
@@ -22,7 +22,7 @@
 
 OpenAPI 예시가 Swagger 문서에서 볼 수 있는 것을 확인할 수 있습니다.
 
-![Swagger UI Example](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-extra-information/02-swagger-ui-example.png)
+![Swagger UI Example](https://nexify.junah.dev/img/learn/tutorial/params-extra-information/02-swagger-ui-example.png)
 
 ## 지원 중단 기능 (deprecated)
 
@@ -32,4 +32,4 @@ OpenAPI 예시가 Swagger 문서에서 볼 수 있는 것을 확인할 수 있�
 
 해당 `itemId`가 빨간색 `deprecated` 표시를 통해 지원 중단된 쿼리 매개변수인 것을 확인 할 수 있습니다.
 
-![Swagger UI Deprecated](https://nexify.junah.dev/img/learn/tutorial/path-and-query-params-extra-information/03-swagger-ui-deprecated.png)
+![Swagger UI Deprecated](https://nexify.junah.dev/img/learn/tutorial/params-extra-information/03-swagger-ui-deprecated.png)

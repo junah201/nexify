@@ -1,7 +1,6 @@
 from typing import Annotated
 
-from nexify import Nexify
-from nexify.params import Query
+from nexify import Nexify, Query
 
 app = Nexify()
 

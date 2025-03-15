@@ -2,7 +2,7 @@
 
 `Query()`와 함께 함수 매개변수를 선언하면 "쿼리" 매개변수를 선언할 수 있습니다.
 
-{* ../../docs_src/query_params/tutorial001.py hl[12] *}
+{* ../../docs_src/query_params/tutorial001.py hl[11] *}
 
 쿼리 파라미터 (Query Parameter)는 URL 뒤에 물음표(`?`)와 함께 붙은 키-값(Key-Value) 쌍입니다. 여러 개의 쿼리 파라미터를 전달하려면 파라미터 사이에 앰퍼샌드(`&`)를 추가해서 하나의 문자열(`string`)으로 전달할 수 있습니다.
 
@@ -49,7 +49,7 @@
 
 `Annotated`안에 있는 `Query()`에 `default` 매개변수를 넣어주어 기본값을 넣어줄 수도 있습니다.
 
-{* ../../docs_src/query_params/tutorial002.py hl[12] *}
+{* ../../docs_src/query_params/tutorial002.py hl[11] *}
 
 위 예시에서 동일하게 `skip`은 `0`의 기본값을 가지고 있고, `limit`은 `10`의 기본값을 갖고 있습니다.
 
@@ -59,7 +59,7 @@
 
 혹은 `Annotated`안에 있는 `Query()`에 `default_factory` 매개변수를 넣어주어 기본값을 넣어줄 수도 있습니다.
 
-{* ../../docs_src/query_params/tutorial003.py hl[16:17] *}
+{* ../../docs_src/query_params/tutorial003.py hl[15:16] *}
 
 `default_factory`는 여러 상황에서 **매우** 유용할 수 있습니다.
 
@@ -69,7 +69,7 @@
 
 ## 데이터 검증
 
-{* ../../docs_src/query_params/tutorial001.py hl[12] *}
+{* ../../docs_src/query_params/tutorial001.py hl[11] *}
 
 하지만 `/items?skip=foo` 경로로 이동하면, 다음과 같은 422 응답을 볼 수 있습니다.
 
@@ -105,7 +105,7 @@
 
 기본값을 가지는 쿼리 매개변수는 모두 **선택적**입니다. 하지만 쿼리 매개변수를 필수로 만들려면 단순히 기본값을 선언하지 않으면 됩니다.
 
-{* ../../docs_src/query_params/tutorial004.py hl[12] *}
+{* ../../docs_src/query_params/tutorial004.py hl[11]*}
 
 `/items` 경로로 이동하면, 다음과 같은 422 응답을 볼 수 있습니다.
 
