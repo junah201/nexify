@@ -372,9 +372,12 @@ def create_template(
         api_gateway_key = "APIGatewayRestAPI"
         api_gateway = {
             "Type": "AWS::ApiGateway::RestApi",
-            "EndpointConfiguration": {"Types": ["EDGE"]},
             "Policy": "",
-            "Properties": {"Name": f"{service}-API", "Description": f"API for {service}"},
+            "Properties": {
+                "Name": f"{service}-API",
+                "Description": f"API for {service}",
+                "EndpointConfiguration": {"Types": ["EDGE"]},
+            },
         }
         t["Resources"][api_gateway_key] = api_gateway
 
