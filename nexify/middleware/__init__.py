@@ -45,15 +45,17 @@ class ExceptionMiddleware(Middleware):
             raise e
 
 
-class RenderMiddleware(Middleware):
+class ResponseConverterMiddleware(Middleware):
     def __call__(self, route, event, context, call_next):
-        content = call_next(event, context)
+        response = call_next(event, context)
+        if isinstance(response, HttpResponse):
+            return response
+        return route.response_class(content=response, status_code=route.status_code)
 
-        if isinstance(content, HttpResponse):
-            response = content
-        else:
-            response = route.response_class(content=content, status_code=route.status_code)
 
+class ResponseRendererMiddleware(Middleware):
+    def __call__(self, route, event, context, call_next):
+        response = call_next(event, context)
         return response.render()
 
 

@@ -9,8 +9,9 @@ from nexify.dependencies.utils import get_dependant, get_sub_dependant, get_type
 from nexify.middleware import (
     ExceptionMiddleware,
     Middleware,
-    RenderMiddleware,
     RequestParsingMiddleware,
+    ResponseConverterMiddleware,
+    ResponseRendererMiddleware,
     ResponseValidationMiddleware,
     ServerErrorMiddleware,
 )
@@ -437,13 +438,16 @@ class APIRouter(OperationManager[Route]):
     ) -> Route:
         middlewares = (
             [
-                RenderMiddleware(),
+                ResponseRendererMiddleware(),
+            ]
+            + self.middlewares
+            + [
+                ResponseConverterMiddleware(),
                 ServerErrorMiddleware(),
                 ExceptionMiddleware(exception_handlers or {}),
                 ResponseValidationMiddleware(),
+                RequestParsingMiddleware(),
             ]
-            + self.middlewares
-            + [RequestParsingMiddleware()]
         )
         return Route(
             path=self.prefix + path,
